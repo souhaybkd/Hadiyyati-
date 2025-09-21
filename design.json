@@ -1,0 +1,124 @@
+{
+    "designSystem": {
+      "fonts": {
+        "primary": {
+          "family": "Bricolage Grotesque, sans-serif",
+          "weights": [400, 500, 600, 700],
+          "lineHeight": "1.6"
+        },
+        "heading": {
+          "family": "Bricolage Grotesque, sans-serif",
+          "weights": [600, 700],
+          "lineHeight": "1.3"
+        }
+      },
+      "colors": {
+        "primary": "#6C47FF",
+        "secondary": "#F9A826",
+        "accent": "#FFD1F4",
+        "dark": "#18181B",
+        "light": "#F9FAFB",
+        "gray": {
+          "100": "#F3F4F6",
+          "200": "#E5E7EB",
+          "300": "#D1D5DB",
+          "400": "#9CA3AF",
+          "500": "#6B7280"
+        },
+        "text": {
+          "heading": "#111827",
+          "body": "#374151",
+          "muted": "#6B7280"
+        }
+      },
+      "layout": {
+        "container": {
+          "maxWidth": "1200px",
+          "padding": "0 1rem"
+        },
+        "sections": {
+          "spacingY": "6rem",
+          "spacingX": "1.5rem"
+        },
+        "grid": {
+          "columns": 12,
+          "gap": "2rem"
+        }
+      },
+      "buttons": {
+        "primary": {
+          "background": "#6C47FF",
+          "color": "#FFFFFF",
+          "padding": "0.75rem 1.5rem",
+          "borderRadius": "0.5rem",
+          "hover": {
+            "background": "#5939d3"
+          }
+        },
+        "secondary": {
+          "background": "#F9A826",
+          "color": "#FFFFFF",
+          "padding": "0.75rem 1.5rem",
+          "borderRadius": "0.5rem",
+          "hover": {
+            "background": "#d4880e"
+          }
+        }
+      },
+      "cards": {
+        "borderRadius": "1rem",
+        "boxShadow": "0 10px 30px rgba(0, 0, 0, 0.05)",
+        "padding": "2rem",
+        "background": "#FFFFFF",
+        "hover": {
+          "boxShadow": "0 10px 40px rgba(0, 0, 0, 0.1)"
+        }
+      },
+      "typography": {
+        "h1": {
+          "fontSize": "3rem",
+          "fontWeight": 700,
+          "lineHeight": "1.2"
+        },
+        "h2": {
+          "fontSize": "2.25rem",
+          "fontWeight": 600,
+          "lineHeight": "1.3"
+        },
+        "h3": {
+          "fontSize": "1.5rem",
+          "fontWeight": 600
+        },
+        "body": {
+          "fontSize": "1rem",
+          "fontWeight": 400
+        },
+        "small": {
+          "fontSize": "0.875rem",
+          "color": "#6B7280"
+        }
+      },
+      "effects": {
+        "shadowLight": "0 4px 12px rgba(0, 0, 0, 0.04)",
+        "shadowHeavy": "0 15px 30px rgba(0, 0, 0, 0.1)",
+        "transition": "all 0.3s ease-in-out"
+      },
+      "images": {
+        "borderRadius": "1.5rem"
+      },
+      "badges": {
+        "default": {
+          "background": "#E5E7EB",
+          "color": "#111827",
+          "padding": "0.25rem 0.75rem",
+          "borderRadius": "9999px",
+          "fontSize": "0.75rem"
+        },
+        "highlight": {
+          "background": "#F9A826",
+          "color": "#FFFFFF"
+        }
+      }
+    }
+  }
+  

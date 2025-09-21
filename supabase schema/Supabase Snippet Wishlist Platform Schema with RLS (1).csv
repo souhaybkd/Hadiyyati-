@@ -1,0 +1,33 @@
+table_name,column_name,data_type,is_nullable,column_default
+profiles,id,uuid,NO,null
+profiles,username,text,NO,null
+profiles,full_name,text,NO,null
+profiles,email,text,NO,null
+profiles,avatar_url,text,YES,null
+profiles,role,text,YES,'user'::text
+profiles,created_at,timestamp with time zone,YES,"timezone('utc'::text, now())"
+profiles,updated_at,timestamp with time zone,YES,"timezone('utc'::text, now())"
+profiles,wishlist_color_palette,text,YES,null
+profiles,wishlist_description,text,YES,null
+transactions,id,uuid,NO,uuid_generate_v4()
+transactions,buyer_id,uuid,YES,null
+transactions,seller_id,uuid,YES,null
+transactions,wishlist_item_id,uuid,YES,null
+transactions,amount,numeric,NO,null
+transactions,stripe_payment_intent_id,text,NO,null
+transactions,status,text,YES,'pending'::text
+transactions,created_at,timestamp with time zone,YES,"timezone('utc'::text, now())"
+transactions,updated_at,timestamp with time zone,YES,"timezone('utc'::text, now())"
+wishlist_items,id,uuid,NO,uuid_generate_v4()
+wishlist_items,user_id,uuid,YES,null
+wishlist_items,title,text,NO,null
+wishlist_items,description,text,YES,null
+wishlist_items,price,numeric,NO,null
+wishlist_items,image_url,text,YES,null
+wishlist_items,product_url,text,YES,null
+wishlist_items,is_public,boolean,YES,true
+wishlist_items,is_purchased,boolean,YES,false
+wishlist_items,purchased_by,uuid,YES,null
+wishlist_items,created_at,timestamp with time zone,YES,"timezone('utc'::text, now())"
+wishlist_items,updated_at,timestamp with time zone,YES,"timezone('utc'::text, now())"
+wishlist_items,sort_order,integer,YES,null

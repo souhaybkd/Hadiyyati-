@@ -1,0 +1,408 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@300;400;500;600;700&display=swap');
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 215 27% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 215 27% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 27% 10%;
+    --primary: 330 100% 50%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 34 78% 56%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 214 20% 96%;
+    --muted-foreground: 215 16% 42%;
+    --accent: 318 71% 91%;
+    --accent-foreground: 215 27% 10%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 330 100% 50%;
+    --radius: 0.5rem;
+    
+    /* Design system additions */
+    --design-primary: 330 100% 50%;
+    --design-secondary: 34 78% 56%;
+    --design-accent: 318 71% 91%;
+    --design-dark: 220 9% 10%;
+    --design-light: 214 20% 98%;
+    --design-shadow-light: 0 4px 12px rgba(0, 0, 0, 0.04);
+    --design-shadow-card: 0 10px 30px rgba(0, 0, 0, 0.05);
+    --design-shadow-card-hover: 0 10px 40px rgba(0, 0, 0, 0.1);
+    --design-shadow-heavy: 0 15px 30px rgba(0, 0, 0, 0.1);
+    --design-transition: all 0.3s ease-in-out;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-sans;
+    line-height: 1.6;
+  }
+  
+  /* Typography improvements */
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-sans;
+    color: #111827;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+  
+  h1 {
+    @apply text-design-h1;
+  }
+  
+  h2 {
+    @apply text-design-h2;
+  }
+  
+  h3 {
+    @apply text-design-h3;
+  }
+  
+  p, span, div {
+    color: #374151;
+    line-height: 1.6;
+  }
+  
+  .text-muted {
+    color: #6B7280;
+  }
+}
+
+/* RTL Support - keeping existing with new font */
+[dir="rtl"] {
+  font-family: 'Noto Sans Arabic', 'Syne', sans-serif;
+}
+
+[dir="ltr"] {
+  font-family: 'Syne', sans-serif;
+}
+
+/* Design system utility classes */
+.design-card {
+  @apply bg-white rounded-design-card shadow-design-card p-design-card;
+  transition: var(--design-transition);
+}
+
+.design-card:hover {
+  @apply shadow-design-card-hover;
+}
+
+.design-button-primary {
+  @apply bg-design-primary text-white px-6 py-3 rounded-design-button;
+  transition: var(--design-transition);
+}
+
+.design-button-primary:hover {
+  background-color: #5939d3;
+}
+
+.design-button-secondary {
+  @apply bg-design-secondary text-white px-6 py-3 rounded-design-button;
+  transition: var(--design-transition);
+}
+
+.design-button-secondary:hover {
+  background-color: #d4880e;
+}
+
+.design-badge {
+  @apply bg-design-gray-200 text-design-text-heading px-3 py-1 rounded-full text-xs;
+}
+
+.design-badge-highlight {
+  @apply bg-design-secondary text-white px-3 py-1 rounded-full text-xs;
+}
+
+.design-container {
+  @apply max-w-screen-2xl mx-auto px-4;
+}
+
+.design-section-spacing {
+  @apply py-design-section;
+}
+
+.design-grid {
+  @apply grid gap-design-grid;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(var(--b2));
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--bc) / 0.2);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--bc) / 0.3);
+}
+
+/* Custom animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideInUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-30px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(30px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -1000px 0; }
+  100% { background-position: 1000px 0; }
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.slide-in-up {
+  animation: slideInUp 0.5s ease-out;
+}
+
+.slide-in-left {
+  animation: slideInLeft 0.5s ease-out;
+}
+
+.slide-in-right {
+  animation: slideInRight 0.5s ease-out;
+}
+
+.scale-in {
+  animation: scaleIn 0.3s ease-out;
+}
+
+/* Loading spinner */
+.loading-spinner {
+  @apply animate-spin rounded-full h-4 w-4 border-b-2 border-primary;
+}
+
+/* Enhanced skeleton loading */
+.skeleton {
+  @apply animate-pulse bg-muted rounded;
+  background-image: linear-gradient(
+    90deg,
+    hsl(var(--muted)) 0%,
+    hsl(var(--muted-foreground)/0.3) 50%,
+    hsl(var(--muted)) 100%
+  );
+  background-size: 200% 100%;
+  animation: pulse-bg 2s infinite;
+}
+
+/* Grid background pattern */
+.bg-grid-slate-100 {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' width='32' height='32' fill='none' stroke='rgb(148 163 184 / 0.05)'%3e%3cpath d='m0 .5h32m-32 32v-32'/%3e%3c/svg%3e");
+}
+
+/* Glass morphism effect */
+.glass {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Gradient text utilities */
+.gradient-text-primary {
+  @apply bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent;
+}
+
+.gradient-text-rainbow {
+  @apply bg-gradient-to-r from-red-500 via-yellow-500 to-blue-500 bg-clip-text text-transparent;
+}
+
+/* Custom hover effects */
+.hover-lift {
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+/* Button loading state enhancement */
+.btn.loading .loading-spinner {
+  @apply mr-2;
+}
+
+/* Enhanced card hover effects */
+.card-hover-lift {
+  transition: all 0.3s ease;
+}
+
+.card-hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+}
+
+/* Progress bar animations */
+.progress-animated {
+  background-image: linear-gradient(
+    45deg,
+    rgba(255, 255, 255, 0.15) 25%,
+    transparent 25%,
+    transparent 50%,
+    rgba(255, 255, 255, 0.15) 50%,
+    rgba(255, 255, 255, 0.15) 75%,
+    transparent 75%,
+    transparent
+  );
+  background-size: 1rem 1rem;
+  animation: progress-bar-stripes 1s linear infinite;
+}
+
+@keyframes progress-bar-stripes {
+  0% { background-position: 1rem 0; }
+  100% { background-position: 0 0; }
+}
+
+/* Avatar group improvements */
+.avatar-group .avatar {
+  border: 2px solid hsl(var(--b1));
+}
+
+/* Badge pulse animation */
+.badge-pulse {
+  animation: pulse 2s infinite;
+}
+
+/* Stats card enhancements */
+.stat-enhanced {
+  position: relative;
+  overflow: hidden;
+}
+
+.stat-enhanced::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.05),
+    transparent
+  );
+  transition: left 0.5s;
+}
+
+.stat-enhanced:hover::before {
+  left: 100%;
+}
+
+/* Tab enhancements */
+.tab-enhanced {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.tab-enhanced::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 0;
+  height: 2px;
+  background: hsl(var(--p));
+  transition: all 0.3s ease;
+  transform: translateX(-50%);
+}
+
+.tab-enhanced.tab-active::after {
+  width: 100%;
+}
+
+/* Form enhancements */
+.input-enhanced {
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.input-enhanced:focus {
+  transform: scale(1.02);
+  box-shadow: 0 0 0 3px hsl(var(--p) / 0.2);
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+  .hero-content {
+    padding: 1rem;
+  }
+  
+  .card-body {
+    padding: 1.5rem;
+  }
+  
+  .stats {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .bg-grid-slate-100 {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' width='32' height='32' fill='none' stroke='rgb(30 41 59 / 0.1)'%3e%3cpath d='m0 .5h32m-32 32v-32'/%3e%3c/svg%3e");
+  }
+}
+
+/* Animation delays */
+.animation-delay-500 {
+  animation-delay: 0.5s;
+}
+
+.animation-delay-1000 {
+  animation-delay: 1s;
+}
+
+.animation-delay-1500 {
+  animation-delay: 1.5s;
+}
+
+/* Print styles */
+@media print {
+  .navbar,
+  .btn,
+  .badge,
+  .loading {
+    display: none !important;
+  }
+} 
