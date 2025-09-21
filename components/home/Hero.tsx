@@ -2,8 +2,6 @@
 
 import React from 'react'
 import Link from 'next/link'
-import Lottie from "lottie-react";
-import giftAnimation from '@/assets/lottie/gift.json'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ArrowRight, Star, Users, Gift, Shield, Play } from 'lucide-react'

@@ -1,18 +1,25 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+// Initialize admin client only when needed to avoid build-time errors
+let supabaseAdmin: any = null
 
-if (!supabaseUrl) {
-  throw new Error('Missing env.NEXT_PUBLIC_SUPABASE_URL')
+function getSupabaseAdmin() {
+  if (!supabaseAdmin) {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+    if (!supabaseUrl) {
+      throw new Error('Missing env.NEXT_PUBLIC_SUPABASE_URL')
+    }
+
+    if (!supabaseServiceRoleKey) {
+      throw new Error('Missing env.SUPABASE_SERVICE_ROLE_KEY')
+    }
+
+    supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey)
+  }
+  return supabaseAdmin
 }
-
-if (!supabaseServiceRoleKey) {
-  throw new Error('Missing env.SUPABASE_SERVICE_ROLE_KEY')
-}
-
-// Create the Supabase admin client
-export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey)
 
 /**
  * Deletes a file from Supabase Storage.
@@ -29,7 +36,8 @@ export async function deleteStorageFile(bucketName: string, filePath: string): P
   }
 
   try {
-    const { error } = await supabaseAdmin.storage
+    const admin = getSupabaseAdmin()
+    const { error } = await admin.storage
       .from(bucketName)
       .remove([filePath])
 
