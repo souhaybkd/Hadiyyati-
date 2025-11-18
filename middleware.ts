@@ -5,31 +5,53 @@ import type { NextRequest } from 'next/server'
 export async function middleware(req: NextRequest) {
   const res = NextResponse.next()
   
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return req.cookies.getAll()
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            res.cookies.set({
-              name,
-              value,
-              ...options,
-            })
-          })
-        },
-      },
-    }
-  )
+  // Check for required environment variables
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-  // Refresh session if expired
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.error('Missing Supabase environment variables')
+    // Allow the request to continue if env vars are missing (for development)
+    // In production, you might want to return an error response
+    return res
+  }
+
+  let session = null
+  
+  try {
+    const supabase = createServerClient(
+      supabaseUrl,
+      supabaseAnonKey,
+      {
+        cookies: {
+          getAll() {
+            return req.cookies.getAll()
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              res.cookies.set({
+                name,
+                value,
+                ...options,
+              })
+            })
+          },
+        },
+      }
+    )
+
+    // Refresh session if expired
+    const {
+      data: { session: userSession },
+    } = await supabase.auth.getSession()
+    
+    session = userSession
+  } catch (error) {
+    console.error('Middleware error:', error)
+    // If there's an error, allow the request to continue
+    // This prevents the entire site from breaking if Supabase is down
+    return res
+  }
 
   // Protected routes that require authentication
   const protectedPaths = ['/dashboard', '/admin']
@@ -66,14 +88,44 @@ export async function middleware(req: NextRequest) {
       return NextResponse.redirect(redirectUrl)
     }
 
-    // Check if user is admin
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', session.user.id)
-      .single()
+    try {
+      // Recreate supabase client for admin check
+      const supabase = createServerClient(
+        supabaseUrl!,
+        supabaseAnonKey!,
+        {
+          cookies: {
+            getAll() {
+              return req.cookies.getAll()
+            },
+            setAll(cookiesToSet) {
+              cookiesToSet.forEach(({ name, value, options }) => {
+                res.cookies.set({
+                  name,
+                  value,
+                  ...options,
+                })
+              })
+            },
+          },
+        }
+      )
 
-    if (profile?.role !== 'admin') {
+      // Check if user is admin
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', session.user.id)
+        .single()
+
+      if (profile?.role !== 'admin') {
+        const redirectUrl = req.nextUrl.clone()
+        redirectUrl.pathname = '/dashboard'
+        return NextResponse.redirect(redirectUrl)
+      }
+    } catch (error) {
+      console.error('Error checking admin access:', error)
+      // If there's an error checking admin, redirect to dashboard
       const redirectUrl = req.nextUrl.clone()
       redirectUrl.pathname = '/dashboard'
       return NextResponse.redirect(redirectUrl)

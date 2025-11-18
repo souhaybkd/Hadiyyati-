@@ -1,11 +1,17 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  i18n: {
-    locales: ['en', 'ar'],
-    defaultLocale: 'en',
-  },
   images: {
-    domains: ['lh3.googleusercontent.com'], // For Google profile images
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'lh3.googleusercontent.com',
+        pathname: '/**',
+      },
+    ],
+  },
+  // Enable experimental features if needed
+  experimental: {
+    // Add any experimental features here if needed
   },
 }
 

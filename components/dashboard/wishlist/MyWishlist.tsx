@@ -161,16 +161,19 @@ const WishlistItemEditor = ({
   onEdit, 
   onDelete,
   onTogglePublic,
+  onTogglePurchased,
   provided
 }: { 
   item: WishlistItem, 
   onEdit: (item: WishlistItem) => void,
   onDelete: (id: string) => void,
   onTogglePublic: (id: string, is_public: boolean) => void,
+  onTogglePurchased: (id: string, is_purchased: boolean) => void,
   provided: DraggableProvided
 }) => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isTogglingPublic, setIsTogglingPublic] = useState(false);
+  const [isTogglingPurchased, setIsTogglingPurchased] = useState(false);
 
   const handleDelete = async () => {
     setIsDeleting(true);
@@ -193,6 +196,18 @@ const WishlistItemEditor = ({
       console.error('Error toggling public status:', error);
     } finally {
       setIsTogglingPublic(false);
+    }
+  };
+
+  const handleTogglePurchased = async () => {
+    setIsTogglingPurchased(true);
+    try {
+      await toggleItemPurchased(item.id, !item.is_purchased);
+      onTogglePurchased(item.id, !item.is_purchased);
+    } catch (error) {
+      console.error('Error toggling purchased status:', error);
+    } finally {
+      setIsTogglingPurchased(false);
     }
   };
 
@@ -222,6 +237,22 @@ const WishlistItemEditor = ({
             <div className="flex items-start justify-between">
               <h4 className="font-medium text-sm truncate">{item.title}</h4>
               <div className="flex items-center gap-1">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-7 w-7 p-0"
+                  onClick={handleTogglePurchased}
+                  disabled={isTogglingPurchased}
+                  title={item.is_purchased ? "Mark as not purchased" : "Mark as purchased"}
+                >
+                  {isTogglingPurchased ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : item.is_purchased ? (
+                    <Check className="h-3 w-3 text-green-600" />
+                  ) : (
+                    <Gift className="h-3 w-3" />
+                  )}
+                </Button>
                 <Button 
                   variant="ghost" 
                   size="sm" 
@@ -483,6 +514,10 @@ export function MyWishlist() {
     setItems(prev => prev.map(item => item.id === itemId ? { ...item, is_public } : item));
   };
 
+  const handleTogglePurchased = (itemId: string, is_purchased: boolean) => {
+    setItems(prev => prev.map(item => item.id === itemId ? { ...item, is_purchased } : item));
+  };
+
   const handleSaveProfile = async () => {
     setIsSavingProfile(true);
     setProfileError(null);
@@ -698,6 +733,7 @@ export function MyWishlist() {
                                             onEdit={handleEdit}
                                             onDelete={handleDelete}
                                             onTogglePublic={handleTogglePublic}
+                                            onTogglePurchased={handleTogglePurchased}
                                             provided={provided}
                                         />
                                     )}

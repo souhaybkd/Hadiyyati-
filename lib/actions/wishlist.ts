@@ -376,15 +376,31 @@ export async function deleteWishlistItem(itemId: string) {
   return { success: true }
 }
 
-// Toggle item as purchased/gifted
+// Toggle item as purchased/gifted (manual toggle by wishlist owner)
 export async function toggleItemPurchased(itemId: string, isPurchased: boolean, purchasedBy?: string) {
   const supabase = await createSupabaseServerClient()
+  
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    throw new Error('User not authenticated')
+  }
+
+  // Verify the item belongs to the user
+  const { data: item } = await supabase
+    .from('wishlist_items')
+    .select('user_id')
+    .eq('id', itemId)
+    .single()
+
+  if (!item || item.user_id !== user.id) {
+    throw new Error('Item not found or unauthorized')
+  }
 
   const { error } = await supabase
     .from('wishlist_items')
     .update({ 
       is_purchased: isPurchased,
-      purchased_by: isPurchased ? purchasedBy : null
+      purchased_by: isPurchased ? (purchasedBy || null) : null
     })
     .eq('id', itemId)
 
@@ -394,6 +410,7 @@ export async function toggleItemPurchased(itemId: string, isPurchased: boolean, 
   }
 
   revalidatePath('/dashboard')
+  revalidatePath('/wishlist')
   return { success: true }
 }
 

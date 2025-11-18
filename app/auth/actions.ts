@@ -3,18 +3,28 @@
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 
 export async function requestPasswordReset(email: string) {
-  const supabase = await createSupabaseServerClient()
-    const { data, error } = await supabase.rpc('user_exists', { requested_email: email })
-
-    if (error || !data) {
-        return { error: { message: 'This email is not registered.' } }
-    }
-
+  try {
+    const supabase = await createSupabaseServerClient()
+    
+    // Check if user exists by trying to find them in auth.users
+    // Note: We can't directly query auth.users, so we'll just attempt the reset
+    // Supabase will handle the case where the email doesn't exist
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+    
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/update-password?redirectTo=/dashboard`,
+        redirectTo: `${siteUrl}/auth/update-password?redirectTo=/dashboard`,
     })
 
-    return { error: resetError }
+    if (resetError) {
+        // Don't reveal if email exists or not for security
+        return { error: { message: 'If this email is registered, you will receive a password reset link.' } }
+    }
+
+    return { success: true }
+  } catch (error) {
+    console.error('Password reset error:', error)
+    return { error: { message: 'Failed to send password reset email. Please try again.' } }
+  }
 }
 
 export async function logout() {

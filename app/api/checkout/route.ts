@@ -69,6 +69,32 @@ export async function POST(request: NextRequest) {
     }
     console.log('✅ Items validation passed')
 
+    // Check if any items are marked as purchased
+    console.log('🔍 Checking if items are available for purchase...')
+    const itemIds = items.map((item: any) => item.id).filter(Boolean)
+    if (itemIds.length > 0) {
+      const { data: wishlistItems, error: itemsError } = await supabase
+        .from('wishlist_items')
+        .select('id, title, is_purchased')
+        .in('id', itemIds)
+
+      if (itemsError) {
+        console.error('❌ Error checking wishlist items:', itemsError)
+        return NextResponse.json({ 
+          error: 'Failed to validate items' 
+        }, { status: 500 })
+      }
+
+      const purchasedItems = wishlistItems?.filter(item => item.is_purchased) || []
+      if (purchasedItems.length > 0) {
+        console.error('❌ Some items are already marked as purchased:', purchasedItems.map(i => i.title))
+        return NextResponse.json({ 
+          error: `Cannot purchase: ${purchasedItems.map(i => i.title).join(', ')} ${purchasedItems.length === 1 ? 'is' : 'are'} already marked as purchased.` 
+        }, { status: 400 })
+      }
+    }
+    console.log('✅ All items are available for purchase')
+
     // Calculate total and prepare line items
     console.log('🔍 Preparing line items for Stripe...')
     const lineItems = items.map((item: any, index: number) => {

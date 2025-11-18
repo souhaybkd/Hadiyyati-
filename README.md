@@ -210,24 +210,97 @@ Visit [http://localhost:3000](http://localhost:3000) to see the application.
 
 ### Vercel Deployment
 
-1. Push your code to GitHub
-2. Import project to Vercel
-3. Add environment variables
-4. Deploy
+1. **Push your code to GitHub**
+   ```bash
+   git add .
+   git commit -m "Ready for deployment"
+   git push origin main
+   ```
+
+2. **Import project to Vercel**
+   - Go to [vercel.com](https://vercel.com)
+   - Click "Add New Project"
+   - Import your GitHub repository
+   - Vercel will auto-detect Next.js
+
+3. **Configure Environment Variables in Vercel**
+   
+   Go to Project Settings → Environment Variables and add:
+   
+   **Required Variables:**
+   ```env
+   # Supabase Configuration
+   NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+   SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+   
+   # Stripe Configuration
+   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=your_stripe_publishable_key
+   STRIPE_SECRET_KEY=your_stripe_secret_key
+   STRIPE_WEBHOOK_SECRET=your_stripe_webhook_secret
+   
+   # Site Configuration
+   NEXT_PUBLIC_SITE_URL=https://your-domain.vercel.app
+   
+   # Resend (Email) - Optional
+   RESEND_API_KEY=your_resend_api_key
+   ```
+
+   **Important:** 
+   - Set `NEXT_PUBLIC_SITE_URL` to your Vercel deployment URL (e.g., `https://your-app.vercel.app`)
+   - Add variables for all environments (Production, Preview, Development)
+   - Use Vercel's environment variable encryption
+
+4. **Configure Build Settings**
+   - Build Command: `npm run build` (auto-detected)
+   - Output Directory: `.next` (auto-detected)
+   - Install Command: `npm install` (auto-detected)
+   - Node.js Version: 18.x or higher (recommended)
+
+5. **Stripe Webhook Configuration**
+   - In Stripe Dashboard → Webhooks
+   - Add endpoint: `https://your-domain.vercel.app/api/webhooks/stripe`
+   - Select events: `checkout.session.completed`, `payment_intent.succeeded`, `payment_intent.payment_failed`
+   - Copy the webhook signing secret to `STRIPE_WEBHOOK_SECRET` in Vercel
+
+6. **Deploy**
+   - Click "Deploy"
+   - Wait for build to complete
+   - Your app will be live at `https://your-app.vercel.app`
+
+### Vercel-Specific Settings
+
+The project includes a `vercel.json` configuration file with:
+- API route headers for CORS
+- Build and install commands
+- Region settings (US East - iad1)
+
+### Post-Deployment Checklist
+
+- [ ] Verify all environment variables are set correctly
+- [ ] Test authentication (login/register)
+- [ ] Test Stripe payment flow
+- [ ] Verify webhook endpoint is accessible
+- [ ] Test API routes
+- [ ] Check middleware protection on protected routes
+- [ ] Verify image loading from external domains
+- [ ] Test RTL/LTR language switching
 
 ### Supabase Setup
 
 1. Create a new Supabase project
 2. Run the SQL commands above
-3. Enable authentication providers
+3. Enable authentication providers (Email, Google OAuth)
 4. Configure RLS policies
+5. Add your Vercel domain to Supabase allowed origins
 
 ### Stripe Setup
 
 1. Create a Stripe account
 2. Get API keys from dashboard
-3. Set up webhooks for payment events
+3. Set up webhooks for payment events (point to your Vercel URL)
 4. Configure payment methods
+5. Test with Stripe test mode first
 
 ## 📄 License
 

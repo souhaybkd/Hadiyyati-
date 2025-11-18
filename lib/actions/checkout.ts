@@ -99,22 +99,8 @@ export async function createOrder(
     throw new Error('Failed to create order items')
   }
 
-  // Mark wishlist items as purchased if it's a gift
-  if (isGift) {
-    const itemIds = items.map(item => item.wishlist_item_id)
-    const { error: updateError } = await supabase
-      .from('wishlist_items')
-      .update({ 
-        is_purchased: true,
-        purchased_by: user.id
-      })
-      .in('id', itemIds)
-
-    if (updateError) {
-      console.error('Error updating wishlist items:', updateError)
-      // Don't throw error here as order was created successfully
-    }
-  }
+  // Note: Items are no longer automatically marked as purchased
+  // The wishlist owner can manually mark items as purchased in their dashboard
 
   // Send gift notification if it's a gift order
   if (isGift && wishlistOwnerIds) {
