@@ -22,7 +22,8 @@ import {
   Mail,
   Trash2,
   Plus,
-  Minus
+  Minus,
+  AlertCircle
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -36,6 +37,7 @@ export default function CheckoutPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [phoneError, setPhoneError] = useState<string | null>(null)
   const [form, setForm] = useState<CheckoutForm>({
     customMessage: '',
     isGift: false
@@ -53,8 +55,56 @@ export default function CheckoutPage() {
       .map(item => item.wishlist_owner_name)
   ))
 
+  // Function to detect phone numbers in text
+  const containsPhoneNumber = (text: string): boolean => {
+    // Pattern 1: Phone number formats with separators (most reliable)
+    // Matches: (123) 456-7890, 123-456-7890, 123.456.7890, +1 123 456 7890, etc.
+    const phonePatterns = [
+      /\(?\d{3}\)?[\s\-\.]?\d{3}[\s\-\.]?\d{4}/, // US format: (123) 456-7890, 123-456-7890
+      /\+\d{1,3}[\s\-]?\d{3,4}[\s\-]?\d{3,4}[\s\-]?\d{3,4}/, // International: +1 123 456 7890
+      /\d{3}[\s\-\.]\d{3}[\s\-\.]\d{4}/, // 123-456-7890 format
+      /\(\d{3}\)[\s]?\d{3}[\s\-]?\d{4}/, // (123) 456-7890 format
+      /\d{10,}/, // 10+ consecutive digits (phone number length)
+    ]
+    
+    // Check if any pattern matches
+    if (phonePatterns.some(pattern => pattern.test(text))) {
+      // Additional check: if it's just 10+ digits, make sure it's not part of a larger number
+      // (like a year, address, etc.) by checking if it's isolated or has phone-like context
+      const tenPlusDigits = /\d{10,}/
+      if (tenPlusDigits.test(text)) {
+        // Check if it looks like a phone number (has word boundaries or is standalone)
+        const match = text.match(/\d{10,}/)
+        if (match) {
+          const before = text.substring(Math.max(0, match.index! - 1), match.index!)
+          const after = text.substring(match.index! + match[0].length, match.index! + match[0].length + 1)
+          // If surrounded by non-digit characters or at start/end, likely a phone number
+          const isIsolated = (!before || !/\d/.test(before)) && (!after || !/\d/.test(after))
+          if (isIsolated) {
+            return true
+          }
+        }
+      } else {
+        // If it matches formatted patterns, it's definitely a phone number
+        return true
+      }
+    }
+    
+    return false
+  }
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target
+    
+    // Check for phone numbers if it's the customMessage field
+    if (name === 'customMessage') {
+      if (containsPhoneNumber(value)) {
+        setPhoneError('Phone numbers are not allowed in gift messages. Please remove any phone numbers and try again.')
+      } else {
+        setPhoneError(null)
+      }
+    }
+    
     setForm(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
@@ -67,8 +117,16 @@ export default function CheckoutPage() {
       return
     }
 
+    // Validate no phone numbers in gift message
+    if (form.isGift && form.customMessage && containsPhoneNumber(form.customMessage)) {
+      setError('Phone numbers are not allowed in gift messages. Please remove any phone numbers and try again.')
+      setPhoneError('Phone numbers are not allowed in gift messages. Please remove any phone numbers and try again.')
+      return
+    }
+
     setLoading(true)
     setError(null)
+    setPhoneError(null)
 
     try {
       const response = await fetch('/api/checkout', {
@@ -259,7 +317,14 @@ export default function CheckoutPage() {
                         placeholder="Write a heartfelt message for the wishlist owner..."
                         rows={4}
                         maxLength={500}
+                        className={phoneError ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}
                       />
+                      {phoneError && (
+                        <div className="flex items-center gap-2 p-2 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+                          <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                          <span>{phoneError}</span>
+                        </div>
+                      )}
                       <p className="text-xs text-muted-foreground">
                         {form.customMessage.length}/500 characters
                       </p>
