@@ -48,10 +48,10 @@ export function HowItWorks() {
     <div className="design-section-spacing bg-white">
       <div className="design-container">
         <div className="text-center mb-16">
-          <h2 className="text-design-h2 font-bold mb-6 text-design-text-heading">
+          <h2 className="text-design-h2 font-bold mb-6 text-design-primary">
             How It Works
           </h2>
-          <p className="text-design-body text-design-text-muted max-w-2xl mx-auto">
+          <p className="text-design-body text-design-primary max-w-2xl mx-auto">
             Getting started with Hadiyati is simple. Follow these four easy steps 
             to create your wishlist and start receiving meaningful gifts.
           </p>
@@ -66,37 +66,39 @@ export function HowItWorks() {
                 </div>
               )}
               
-              <Card className="relative z-10 shadow-design-card hover:shadow-design-card-hover transition-design text-center h-full">
-                <CardContent className="p-8">
+              <div className="relative z-10 p-[10px] rounded-lg lg:rounded-[64px]" style={{ background: 'linear-gradient(to right, #D1AB30, #E8C547)' }}>
+                <Card className="shadow-design-card hover:shadow-design-card-hover transition-design text-center h-full bg-design-primary border-0 rounded-lg lg:rounded-[64px]">
+                  <CardContent className="p-8">
                   {/* Step number */}
-                  <div className="w-12 h-12 bg-design-primary text-white rounded-full flex items-center justify-center mx-auto mb-6 text-lg font-bold">
+                  <div className="w-12 h-12 bg-white text-design-primary rounded-full flex items-center justify-center mx-auto mb-6 text-lg font-bold">
                     {step.step}
                   </div>
                   
                   {/* Icon */}
-                  <div className="w-16 h-16 bg-design-primary/10 rounded-design-card flex items-center justify-center mx-auto mb-6">
-                    <step.icon className="h-8 w-8 text-design-primary" />
+                  <div className="w-16 h-16 bg-white/20 rounded-design-card flex items-center justify-center mx-auto mb-6">
+                    <step.icon className="h-8 w-8 text-white" />
                   </div>
                   
                   {/* Content */}
-                  <h3 className="text-design-h3 font-semibold mb-4 text-design-text-heading">
+                  <h3 className="text-design-h3 font-semibold mb-4 text-white">
                     {step.title}
                   </h3>
-                  <p className="text-design-text-muted mb-6 leading-relaxed">
+                  <p className="text-white mb-6 leading-relaxed">
                     {step.description}
                   </p>
                   
                   {/* Details */}
                   <ul className="space-y-2 text-left">
                     {step.details.map((detail, idx) => (
-                      <li key={idx} className="flex items-center text-design-small text-design-text-muted">
-                        <CheckCircle className="h-4 w-4 text-design-secondary mr-2 flex-shrink-0" />
+                      <li key={idx} className="flex items-center text-design-small text-white">
+                        <CheckCircle className="h-4 w-4 text-white mr-2 flex-shrink-0" />
                         {detail}
                       </li>
                     ))}
                   </ul>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
           ))}
         </div>
@@ -104,7 +106,7 @@ export function HowItWorks() {
         {/* CTA */}
         <div className="text-center">
 
-          <Button size="lg" className="px-8 py-6 text-lg group shadow-design-card">
+          <Button size="lg" className="px-8 py-6 text-lg group shadow-none rounded-full text-white font-semibold hover:opacity-90" style={{ backgroundImage: 'linear-gradient(to right, #D1AB30, #E8C547)' }}>
             Create Your Wishlist Now
             <ArrowRight className="ml-2 h-5 w-5 transition-design group-hover:translate-x-1" />
           </Button>

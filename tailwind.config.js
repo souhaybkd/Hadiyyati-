@@ -54,8 +54,8 @@ module.exports = {
           foreground: "hsl(var(--card-foreground))",
         },
         // Design system colors
-        'design-primary': '#FF007F',
-        'design-secondary': '#F9A826',
+        'design-primary': '#C44D85',
+        'design-secondary': '#D1AB30',
         'design-accent': '#FFD1F4',
         'design-dark': '#18181B',
         'design-light': '#F9FAFB',

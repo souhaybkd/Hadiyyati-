@@ -8,7 +8,7 @@ import { ArrowRight, Star, Users, Gift, Shield, Play } from 'lucide-react'
 
 export function Hero() {
   return (
-    <div className="relative isolate min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-design-light to-design-gray-100">
+    <div className="relative isolate min-h-screen flex items-center justify-center overflow-hidden bg-design-primary" style={{ width: '100vw', marginLeft: 'calc(-50vw + 50%)', marginRight: 'calc(-50vw + 50%)' }}>
       {/* Background decoration */}
       <div className="absolute inset-0 bg-grid-slate-100 opacity-20 min-h-screen" style={{
         maskImage: 'linear-gradient(0deg, white, rgba(255, 255, 255, 0.6))',
@@ -19,20 +19,20 @@ export function Hero() {
         <div className="max-w-5xl mx-auto px-4">
           
           {/* Trust badge */}
-          <Badge className="mb-4 px-4 py-2 text-primary border border-primary">
-            <Star className="h-4 w-4 mr-2 fill-current text-white" />
+          <Badge className="mb-4 px-4 py-2 bg-white text-design-primary border border-white">
+            <Star className="h-4 w-4 mr-2 fill-current text-design-primary" />
             Trusted by 10,000+ users worldwide
           </Badge>
           
           {/* Main heading */}
-          <h1 className="text-design-h1 font-bold mb-4 text-design-text-heading leading-tight">
+          <h1 className="text-design-h1 font-bold mb-4 text-white leading-tight">
             All your gift wishes.
             <br />
-            <span className="text-design-primary">One beautiful link.</span>
+            <span className="text-white">One beautiful link.</span>
           </h1>
           
           {/* Subtitle */}
-          <p className="text-xl mb-6 text-design-text-muted max-w-3xl mx-auto leading-relaxed">
+          <p className="text-xl mb-6 text-white max-w-3xl mx-auto leading-relaxed">
             Create a stunning wishlist, share it effortlessly, and receive meaningful gifts from loved ones. 
             The modern way to celebrate life's special moments.
           </p>
@@ -49,15 +49,15 @@ export function Hero() {
           
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
-            <Button asChild size="lg" className="group shadow-design-card px-8 py-6 text-lg">
+            <Button asChild size="lg" className="group shadow-design-card px-8 py-6 text-lg bg-white text-design-primary hover:bg-white/90 rounded-full">
               <Link href="/auth">
                 Get Started for Free
-                <ArrowRight className="ml-2 h-5 w-5 transition-design group-hover:translate-x-1" />
+                <ArrowRight className="ml-2 h-5 w-5 text-design-primary transition-design group-hover:translate-x-1" />
               </Link>
             </Button>
-            <Button asChild variant="outline" size="lg" className="px-8 py-6 text-lg group">
+            <Button asChild variant="outline" size="lg" className="px-8 py-6 text-lg group bg-white text-design-primary border-white hover:bg-white/90 rounded-full">
               <Link href="#demo">
-                <Play className="mr-2 h-5 w-5" />
+                <Play className="mr-2 h-5 w-5 text-design-primary" />
                 Watch Demo
               </Link>
             </Button>
@@ -67,24 +67,24 @@ export function Hero() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-2xl mx-auto">
             <div className="text-center">
               <div className="flex items-center justify-center mb-2">
-                <Users className="h-6 w-6 text-design-primary mr-2" />
-                <span className="text-2xl font-bold text-design-text-heading">10K+</span>
+                <Users className="h-6 w-6 text-white mr-2" />
+                <span className="text-2xl font-bold text-white">10K+</span>
               </div>
-              <p className="text-design-text-muted text-design-small">Active Users</p>
+              <p className="text-white text-design-small">Active Users</p>
             </div>
             <div className="text-center">
               <div className="flex items-center justify-center mb-2">
-                <Gift className="h-6 w-6 text-design-secondary mr-2" />
-                <span className="text-2xl font-bold text-design-text-heading">50K+</span>
+                <Gift className="h-6 w-6 text-white mr-2" />
+                <span className="text-2xl font-bold text-white">50K+</span>
               </div>
-              <p className="text-design-text-muted text-design-small">Gifts Shared</p>
+              <p className="text-white text-design-small">Gifts Shared</p>
             </div>
             <div className="text-center">
               <div className="flex items-center justify-center mb-2">
-                <Shield className="h-6 w-6 text-design-primary mr-2" />
-                <span className="text-2xl font-bold text-design-text-heading">100%</span>
+                <Shield className="h-6 w-6 text-white mr-2" />
+                <span className="text-2xl font-bold text-white">100%</span>
               </div>
-              <p className="text-design-text-muted text-design-small">Secure & Private</p>
+              <p className="text-white text-design-small">Secure & Private</p>
             </div>
           </div>
 

@@ -78,10 +78,10 @@ export function Benefits() {
     <div className="design-section-spacing bg-white">
       <div className="design-container">
         <div className="text-center mb-16">
-          <h2 className="text-design-h2 font-bold mb-6 text-design-text-heading">
+          <h2 className="text-design-h2 font-bold mb-6 text-design-primary">
             Why Choose Hadiyati?
           </h2>
-          <p className="text-design-body text-design-text-muted max-w-3xl mx-auto">
+          <p className="text-design-body text-design-primary max-w-3xl mx-auto">
             Transform your gift-giving experience with features designed to make every 
             occasion special, meaningful, and stress-free for everyone involved.
           </p>
@@ -90,28 +90,30 @@ export function Benefits() {
         {/* Main Benefits */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
           {benefits.map((benefit, index) => (
-            <Card key={index} className="shadow-design-card hover:shadow-design-card-hover transition-design group border border-design-primary">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-center space-x-8">
-                  <div className={`w-16 h-16 ${benefit.bgColor} rounded-design-card flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform`}>
-                    <benefit.icon className={`h-8 w-8 ${benefit.color}`} />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-design-h3 font-semibold mb-3 text-design-text-heading">
-                      {benefit.title}
-                    </h3>
-                    <p className="text-design-text-muted leading-relaxed mb-4">
-                      {benefit.description}
-                    </p>
-                    <div className="inline-flex items-center px-3 py-1 bg-design-light rounded-full">
-                      <span className="text-design-small font-medium text-design-primary">
-                        {benefit.stats}
-                      </span>
+            <div key={index} className="relative z-10 p-[10px] rounded-lg lg:rounded-[64px]" style={{ background: 'linear-gradient(to right, #D1AB30, #E8C547)' }}>
+              <Card className="shadow-design-card hover:shadow-design-card-hover transition-design group border-0 rounded-lg lg:rounded-[64px] bg-design-primary h-full">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-center space-x-8">
+                    <div className="w-16 h-16 bg-white/20 rounded-design-card flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+                      <benefit.icon className="h-8 w-8 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-design-h3 font-semibold mb-3 text-white">
+                        {benefit.title}
+                      </h3>
+                      <p className="text-white leading-relaxed mb-4">
+                        {benefit.description}
+                      </p>
+                      <div className="inline-flex items-center px-3 py-1 bg-white/20 rounded-full">
+                        <span className="text-design-small font-medium text-white">
+                          {benefit.stats}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </div>
           ))}
         </div>
 

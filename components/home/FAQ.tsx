@@ -35,19 +35,19 @@ export function FAQ() {
     <div className="design-section-spacing bg-white">
       <div className="design-container">
         <div className="text-center mb-16 max-w-2xl mx-auto">
-          <h2 className="text-design-h2 font-bold mb-6 text-design-text-heading">
+          <h2 className="text-design-h2 font-bold mb-6 text-design-secondary">
             FAQs
           </h2>
         </div>
 
-        <div className="max-w-3xl mx-auto">
-          <Accordion type="single" collapsible className="w-full">
+        <div className="max-w-3xl mx-auto space-y-4">
+          <Accordion type="single" collapsible className="w-full space-y-4">
             {faqs.map((faq, index) => (
-              <AccordionItem key={index} value={`item-${index}`} className="border-design-gray-200">
-                <AccordionTrigger className="text-design-body font-semibold text-left text-design-text-heading hover:text-design-primary">
+              <AccordionItem key={index} value={`item-${index}`} className="!border-2 !border-design-secondary rounded-lg px-4 py-2 !border-b-2">
+                <AccordionTrigger className="text-design-body font-semibold text-left text-design-primary hover:text-design-primary">
                   {faq.question}
                 </AccordionTrigger>
-                <AccordionContent className="text-design-text-muted text-design-body">
+                <AccordionContent className="text-design-primary text-design-body">
                   {faq.answer}
                 </AccordionContent>
               </AccordionItem>

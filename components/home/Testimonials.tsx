@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { Card, CardContent } from '@/components/ui/card'
-import { Star, Quote } from 'lucide-react'
+import { Star } from 'lucide-react'
 
 export function Testimonials() {
   const testimonials = [
@@ -52,10 +52,10 @@ export function Testimonials() {
     <div className="design-section-spacing bg-design-light">
       <div className="design-container">
         <div className="text-center mb-16">
-          <h2 className="text-design-h2 font-bold mb-6 text-design-text-heading">
+          <h2 className="text-design-h2 font-bold mb-6 text-design-primary">
             Loved by Thousands of Users
           </h2>
-          <p className="text-design-body text-design-text-muted max-w-2xl mx-auto">
+          <p className="text-design-body text-design-primary max-w-2xl mx-auto">
             See what our community is saying about their experience with Hadiyati.
             Real stories from real people who've transformed their gift-giving.
           </p>
@@ -63,66 +63,65 @@ export function Testimonials() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
           {testimonials.map((testimonial, index) => (
-            <Card key={testimonial.id} className="shadow-design-card hover:shadow-design-card-hover transition-design">
-              <CardContent className="p-8">
-                {/* Quote Icon */}
-                <div className="flex justify-between items-start mb-6">
-                  <Quote className="h-8 w-8 text-design-primary/20" />
-                  <div className="flex space-x-1">
+            <div key={testimonial.id} className="relative z-10 p-[10px] rounded-lg lg:rounded-[64px]" style={{ background: 'linear-gradient(to right, #D1AB30, #E8C547)' }}>
+              <Card className="shadow-design-card hover:shadow-design-card-hover transition-design border-0 rounded-lg lg:rounded-[64px] bg-design-primary h-full">
+                <CardContent className="p-8 text-center">
+                  {/* Stars - Centered */}
+                  <div className="flex justify-center space-x-1 mb-6">
                     {[...Array(testimonial.rating)].map((_, i) => (
-                      <Star key={i} className="h-4 w-4 fill-design-secondary text-design-secondary" />
+                      <Star key={i} className="h-6 w-6 fill-design-secondary text-design-secondary" />
                     ))}
                   </div>
-                </div>
 
-                {/* Content */}
-                <p className="text-design-text-body mb-6 leading-relaxed italic">
-                  "{testimonial.content}"
-                </p>
+                  {/* Content - Centered */}
+                  <p className="text-white mb-6 leading-relaxed italic text-center">
+                    "{testimonial.content}"
+                  </p>
 
-                {/* Author */}
-                <div className="flex items-center">
-                  <div className={`w-12 h-12 ${testimonial.color} rounded-full flex items-center justify-center text-white font-bold mr-4`}>
-                    {testimonial.avatar}
+                  {/* Author - Centered */}
+                  <div className="flex flex-col items-center">
+                    <div className={`w-12 h-12 ${testimonial.color} rounded-full flex items-center justify-center text-white font-bold mb-3`}>
+                      {testimonial.avatar}
+                    </div>
+                    <div className="text-center">
+                      <h4 className="font-semibold text-white">
+                        {testimonial.name}
+                      </h4>
+                      <p className="text-white/80 text-design-small">
+                        {testimonial.role} • {testimonial.company}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="font-semibold text-design-text-heading">
-                      {testimonial.name}
-                    </h4>
-                    <p className="text-design-text-muted text-design-small">
-                      {testimonial.role} • {testimonial.company}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </div>
           ))}
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
-          <div className="bg-white rounded-design-card p-6 shadow-design-light">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center max-w-4xl mx-auto">
+          <div className="rounded-design-card p-6 shadow-design-light text-white" style={{ backgroundImage: 'linear-gradient(to right, #D1AB30, #E8C547)' }}>
             <div className="flex items-center justify-center mb-2">
-              <Star className="h-6 w-6 text-design-secondary mr-2 fill-current" />
-              <span className="text-2xl font-bold text-design-text-heading">4.9</span>
+              <Star className="h-6 w-6 text-white mr-2 fill-white" />
+              <span className="text-2xl font-bold text-white">4.9</span>
             </div>
-            <p className="text-design-text-muted text-design-small">
+            <p className="text-white text-design-small">
               Average Rating
             </p>
           </div>
-          <div className="bg-white rounded-design-card p-6 shadow-design-light">
-            <div className="text-2xl font-bold text-design-text-heading mb-2">
+          <div className="rounded-design-card p-6 shadow-design-light text-white" style={{ backgroundImage: 'linear-gradient(to right, #D1AB30, #E8C547)' }}>
+            <div className="text-2xl font-bold text-white mb-2">
               10,000+
             </div>
-            <p className="text-design-text-muted text-design-small">
+            <p className="text-white text-design-small">
               Happy Users
             </p>
           </div>
-          <div className="bg-white rounded-design-card p-6 shadow-design-light">
-            <div className="text-2xl font-bold text-design-text-heading mb-2">
+          <div className="rounded-design-card p-6 shadow-design-light text-white" style={{ backgroundImage: 'linear-gradient(to right, #D1AB30, #E8C547)' }}>
+            <div className="text-2xl font-bold text-white mb-2">
               50,000+
             </div>
-            <p className="text-design-text-muted text-design-small">
+            <p className="text-white text-design-small">
               Gifts Shared
             </p>
           </div>

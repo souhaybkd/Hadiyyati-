@@ -62,10 +62,10 @@ export function Features() {
     <div className="design-section-spacing bg-white">
       <div className="design-container">
         <div className="text-center mb-16 max-w-3xl mx-auto">
-          <h2 className="text-design-h2 font-bold mb-6 text-design-text-heading">
+          <h2 className="text-design-h2 font-bold mb-6 text-design-primary">
             Everything You Need for Perfect Gift-Giving
           </h2>
-          <p className="text-design-text-muted text-design-body mb-4">
+          <p className="text-design-primary text-design-body mb-4">
             From creating beautiful wishlists to receiving meaningful gifts, 
             our platform provides all the tools you need for seamless gift experiences.
           </p>
@@ -74,19 +74,21 @@ export function Features() {
         {/* Main Features Grid */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-16">
           {mainFeatures.map((feature, index) => (
-            <Card key={index} className="shadow-design-card hover:shadow-design-card-hover transition-design group border border-design-primary">
-              <CardContent className="p-4  ">
-                <div className={`w-16 h-16 ${feature.bgColor} rounded-design-card flex items-center justify-center mb-6 group-hover:scale-110 transition-transform`}>
-                  <feature.icon className={`h-8 w-8 ${feature.color}`} />
-                </div>
-                <h3 className="text-design-h3 font-semibold mb-4 text-design-text-heading">
-                  {feature.title}
-                </h3>
-                <p className="text-design-text-muted leading-relaxed">
-                  {feature.description}
-                </p>
-              </CardContent>
-            </Card>
+            <div key={index} className="relative z-10 p-[10px] rounded-lg lg:rounded-[64px]" style={{ background: 'linear-gradient(to right, #D1AB30, #E8C547)' }}>
+              <Card className="shadow-design-card hover:shadow-design-card-hover transition-design group border-0 rounded-lg lg:rounded-[64px] bg-design-primary h-full">
+                <CardContent className="p-4">
+                  <div className="w-16 h-16 bg-white/20 rounded-design-card flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                    <feature.icon className="h-8 w-8 text-white" />
+                  </div>
+                  <h3 className="text-design-h3 font-semibold mb-4 text-white">
+                    {feature.title}
+                  </h3>
+                  <p className="text-white leading-relaxed">
+                    {feature.description}
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
           ))}
         </div>
 
@@ -96,7 +98,7 @@ export function Features() {
 
         {/* Demo Section */}
         <div className="text-center">
-          <h3 className="text-design-h3 font-semibold mb-6 text-design-text-heading">
+          <h3 className="text-design-h3 font-semibold mb-6 text-design-primary">
             See It In Action
           </h3>
           <div className="bg-design-gray-100 rounded-design-image aspect-video flex items-center justify-center mb-8 overflow-hidden border border-design-primary/20 shadow-design-card">
@@ -108,7 +110,7 @@ export function Features() {
           </div>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
 
-            <Button asChild size="lg" className="group">
+            <Button asChild size="lg" className="px-8 py-6 text-lg group shadow-none rounded-full text-white font-semibold hover:opacity-90" style={{ backgroundImage: 'linear-gradient(to right, #D1AB30, #E8C547)' }}>
               <Link href="/auth">
                 Start for Free
                 <ArrowRight className="ml-2 h-4 w-4 transition-design group-hover:translate-x-1" />

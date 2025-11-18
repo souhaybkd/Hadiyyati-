@@ -15,19 +15,33 @@ import {
 
 export default function Home() {
   return (
-    <>
-      <Hero />
-      <HowItWorks />
-      <Features />
-      <Benefits />
-      <Pricing />
-
-      <Testimonials />
+    <div className="relative min-h-screen">
+      {/* Pattern background on the right side - Desktop only, highest z-index */}
+      <div 
+        className="hidden lg:block fixed right-0 top-0 bottom-0 w-64 pointer-events-none z-[9999] opacity-100"
+        style={{
+          backgroundImage: 'url(/assets/img/pattern.png)',
+          backgroundRepeat: 'repeat-y',
+          backgroundPosition: 'right top',
+          backgroundSize: 'auto',
+        }}
+      />
       
-      <BilingualFeature />
-      <Share />
-      <FAQ />
-      <CTA />
-    </>
+      {/* Content wrapper with relative positioning */}
+      <div className="relative z-10">
+        <Hero />
+        <HowItWorks />
+        <Features />
+        <Benefits />
+        <Pricing />
+
+        <Testimonials />
+        
+        <BilingualFeature />
+        <Share />
+        <FAQ />
+        <CTA />
+      </div>
+    </div>
   )
 } 
