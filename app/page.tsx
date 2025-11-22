@@ -7,7 +7,6 @@ import {
   
   CTA,
   Share,
-  Testimonials,
   
   FAQ,
   BilingualFeature,
@@ -35,7 +34,7 @@ export default function Home() {
         <Benefits />
         <Pricing />
 
-        <Testimonials />
+        {/* <Testimonials /> */}
         
         <BilingualFeature />
         <Share />

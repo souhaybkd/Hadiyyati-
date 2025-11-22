@@ -38,7 +38,7 @@ export function Navbar() {
             <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center group-hover:bg-white/30 transition-design">
               <Gift className="h-5 w-5 text-white" />
             </div>
-            <span className="text-xl font-bold text-white">Hadiaytti</span>
+            <span className="text-xl font-bold text-white">Hadiyyati</span>
           </Link>
 
           {/* Desktop Navigation */}

@@ -43,7 +43,7 @@ export function Hero() {
 
           {/* URL Preview */}
           <div className="inline-flex items-center gap-2 font-mono text-design-text-muted bg-white rounded-design-card px-6 py-4 mb-12 shadow-design-card border border-design-gray-200">
-            <span className="text-design-text-body">hadiyati.com/</span>
+            <span className="text-design-text-body">hadiyyati.me/</span>
             <span className="text-design-primary font-semibold">yourname</span>
           </div>
           
