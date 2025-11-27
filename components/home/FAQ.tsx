@@ -12,7 +12,7 @@ const faqs = [
   {
     question: 'Can I request both physical and digital gifts?',
     answer:
-      'Yes — you can add links, describe gift ideas, or request a simple cash gift.',
+      'At this time you may only receive digital gifts',
   },
   {
     question: 'Is it free to use?',
@@ -24,7 +24,7 @@ const faqs = [
       'You can choose from payout methods like local bank transfer, TapTap Send, or Western Union.',
   },
   {
-    question: 'Is Hadiyati safe?',
+    question: 'Is Hadiyyati safe?',
     answer:
       'Yes — all payments are secure, and your personal data is protected.',
   },

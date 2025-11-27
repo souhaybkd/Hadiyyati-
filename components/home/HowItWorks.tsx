@@ -1,6 +1,7 @@
 'use client'
 
 import React from 'react'
+import Link from 'next/link'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { 
@@ -105,10 +106,11 @@ export function HowItWorks() {
 
         {/* CTA */}
         <div className="text-center">
-
-          <Button size="lg" className="px-8 py-6 text-lg group shadow-none rounded-full text-white font-semibold hover:opacity-90" style={{ backgroundImage: 'linear-gradient(to right, #D1AB30, #E8C547)' }}>
-            Create Your Wishlist Now
-            <ArrowRight className="ml-2 h-5 w-5 transition-design group-hover:translate-x-1" />
+          <Button asChild size="lg" className="px-8 py-6 text-lg group shadow-none rounded-full text-white font-semibold hover:opacity-90" style={{ backgroundImage: 'linear-gradient(to right, #D1AB30, #E8C547)' }}>
+            <Link href="/auth">
+              Create Your Wishlist Now
+              <ArrowRight className="ml-2 h-5 w-5 transition-design group-hover:translate-x-1" />
+            </Link>
           </Button>
         </div>
       </div>

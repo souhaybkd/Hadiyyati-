@@ -20,7 +20,7 @@ export function Benefits() {
     {
       icon: Clock,
       title: 'Save Time & Effort',
-      description: 'No more guessing what people want. Your wishlist tells them exactly what would make you happy.',
+      description: 'No more people guessing what you want. Your Hadiyyati wishlist tells them exactly what would make you happy.',
       stats: '90% less time spent on gift exchanges',
       color: 'text-design-primary',
       bgColor: 'bg-design-primary/10',
@@ -79,7 +79,7 @@ export function Benefits() {
       <div className="design-container">
         <div className="text-center mb-16">
           <h2 className="text-design-h2 font-bold mb-6 text-design-primary">
-            Why Choose Hadiyati?
+            Why Choose Hadiyyati?
           </h2>
           <p className="text-design-body text-design-primary max-w-3xl mx-auto">
             Transform your gift-giving experience with features designed to make every 
@@ -105,9 +105,9 @@ export function Benefits() {
                         {benefit.description}
                       </p>
                       <div className="inline-flex items-center px-3 py-1 bg-white/20 rounded-full">
-                        <span className="text-design-small font-medium text-white">
+                        {/* <span className="text-design-small font-medium text-white">
                           {benefit.stats}
-                        </span>
+                        </span> */}
                       </div>
                     </div>
                   </div>

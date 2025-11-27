@@ -64,8 +64,8 @@ export function Hero() {
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-2xl mx-auto">
-            {/* <div className="text-center">
+          {/* <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-2xl mx-auto">
+            <div className="text-center">
               <div className="flex items-center justify-center mb-2">
                 <Users className="h-6 w-6 text-white mr-2" />
                 <span className="text-2xl font-bold text-white">10K+</span>
@@ -78,7 +78,7 @@ export function Hero() {
                 <span className="text-2xl font-bold text-white">50K+</span>
               </div>
               <p className="text-white text-design-small">Gifts Shared</p>
-            </div> */}
+            </div>
             <div className="text-center">
               <div className="flex items-center justify-center mb-2">
                 <Shield className="h-6 w-6 text-white mr-2" />
@@ -86,7 +86,7 @@ export function Hero() {
               </div>
               <p className="text-white text-design-small">Secure & Private</p>
             </div>
-          </div>
+          </div> */}
 
 
         </div>
