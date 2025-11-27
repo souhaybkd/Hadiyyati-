@@ -53,7 +53,7 @@ export function HowItWorks() {
             How It Works
           </h2>
           <p className="text-design-body text-design-primary max-w-2xl mx-auto">
-            Getting started with Hadiyati is simple. Follow these four easy steps 
+            Getting started with Hadiyyati is simple. Follow these four easy steps 
             to create your wishlist and start receiving meaningful gifts.
           </p>
         </div>
