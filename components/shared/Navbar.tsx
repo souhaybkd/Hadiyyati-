@@ -59,7 +59,7 @@ export function Navbar() {
           </div>
 
           {/* Desktop Actions */}
-          <div className="hidden md:flex items-center space-x-4">
+          <div className="hidden md:flex items-center space-x-4 relative z-[9999]">
             {/* <LanguageToggle /> */}
 
             <Button asChild size="sm" className="rounded-full shadow-none text-white font-semibold hover:opacity-90" style={{ backgroundImage: 'linear-gradient(to right, #D1AB30, #E8C547)' }}>

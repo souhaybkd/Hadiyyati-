@@ -65,8 +65,10 @@ export function AuthForm() {
                     window.location.href = '/dashboard'
                 }
             } else if (mode === 'forgot') {
+                // Use environment variable if available, otherwise fall back to window.location.origin
+                const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || (typeof window !== 'undefined' ? window.location.origin : '')
                 const { error } = await supabase.auth.resetPasswordForEmail(email, {
-                    redirectTo: `${window.location.origin}/auth/update-password?redirectTo=/dashboard`,
+                    redirectTo: `${siteUrl}/auth/update-password?redirectTo=/dashboard`,
                 })
                 
                 if (error) {
@@ -88,10 +90,14 @@ export function AuthForm() {
         setError('')
         
         try {
+            // Use environment variable if available, otherwise fall back to window.location.origin
+            const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || (typeof window !== 'undefined' ? window.location.origin : '')
+            const redirectUrl = `${siteUrl}/auth/callback?next=/dashboard`
+            
             const { error } = await supabase.auth.signInWithOAuth({
                 provider: 'google',
                 options: {
-                    redirectTo: `${window.location.origin}/auth/callback?next=/dashboard`
+                    redirectTo: redirectUrl
                 }
             })
             

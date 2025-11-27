@@ -31,7 +31,7 @@ export function Footer() {
           </div>
 
           {/* Links */}
-          <div className="flex flex-wrap justify-center gap-x-4 gap-y-4">
+          <div className="flex flex-wrap justify-center gap-x-4 gap-y-4 relative z-[100]">
             <Link href="/about" className="text-sm font-medium transition-design px-4 py-2 text-white font-semibold hover:opacity-90" style={{ backgroundImage: 'linear-gradient(to right, #D1AB30, #E8C547)', borderRadius: '50px 0px 0px 50px' }}>
               About
             </Link>

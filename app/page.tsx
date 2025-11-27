@@ -17,7 +17,7 @@ export default function Home() {
     <div className="relative min-h-screen">
       {/* Pattern background on the right side - Desktop only, highest z-index */}
       <div 
-        className="hidden lg:block fixed right-0 top-0 bottom-0 w-64 pointer-events-none z-[9999] opacity-100"
+        className="hidden lg:block fixed right-0 top-0 bottom-0 w-64 pointer-events-none z-[40] opacity-100"
         style={{
           backgroundImage: 'url(/assets/img/pattern.png)',
           backgroundRepeat: 'repeat-y',

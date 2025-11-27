@@ -19,10 +19,10 @@ export function Hero() {
         <div className="max-w-5xl mx-auto px-4">
           
           {/* Trust badge */}
-          <Badge className="mb-4 px-4 py-2 bg-white text-design-primary border border-white">
+          {/* <Badge className="mb-4 px-4 py-2 bg-white text-design-primary border border-white">
             <Star className="h-4 w-4 mr-2 fill-current text-design-primary" />
             Trusted by 10,000+ users worldwide
-          </Badge>
+          </Badge> */}
           
           {/* Main heading */}
           <h1 className="text-design-h1 font-bold mb-4 text-white leading-tight">
@@ -55,17 +55,17 @@ export function Hero() {
                 <ArrowRight className="ml-2 h-5 w-5 text-design-primary transition-design group-hover:translate-x-1" />
               </Link>
             </Button>
-            <Button asChild variant="outline" size="lg" className="px-8 py-6 text-lg group bg-white text-design-primary border-white hover:bg-white/90 rounded-full">
+            {/* <Button asChild variant="outline" size="lg" className="px-8 py-6 text-lg group bg-white text-design-primary border-white hover:bg-white/90 rounded-full">
               <Link href="#demo">
                 <Play className="mr-2 h-5 w-5 text-design-primary" />
                 Watch Demo
               </Link>
-            </Button>
+            </Button> */}
           </div>
 
           {/* Stats */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-2xl mx-auto">
-            <div className="text-center">
+            {/* <div className="text-center">
               <div className="flex items-center justify-center mb-2">
                 <Users className="h-6 w-6 text-white mr-2" />
                 <span className="text-2xl font-bold text-white">10K+</span>
@@ -78,7 +78,7 @@ export function Hero() {
                 <span className="text-2xl font-bold text-white">50K+</span>
               </div>
               <p className="text-white text-design-small">Gifts Shared</p>
-            </div>
+            </div> */}
             <div className="text-center">
               <div className="flex items-center justify-center mb-2">
                 <Shield className="h-6 w-6 text-white mr-2" />
