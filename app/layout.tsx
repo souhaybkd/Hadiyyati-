@@ -13,7 +13,7 @@ const bricolage = Bricolage_Grotesque({
 })
 
 export const metadata = {
-  title: 'Hadiaytti - Gift-Giving Platform',
+  title: 'hadiyyati - Gift-Giving Platform',
   description: 'A bilingual gift-giving platform connecting gift-givers with recipients',
 }
 

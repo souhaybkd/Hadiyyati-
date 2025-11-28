@@ -56,6 +56,7 @@ export async function middleware(req: NextRequest) {
   // Protected routes that require authentication
   const protectedPaths = ['/dashboard', '/admin']
   const publicPaths = ['/auth', '/']
+  const setupUsernamePath = '/auth/setup-username'
   
   const isProtectedPath = protectedPaths.some(path => 
     req.nextUrl.pathname.startsWith(path)
@@ -64,7 +65,9 @@ export async function middleware(req: NextRequest) {
   const isPublicPath = publicPaths.some(path => 
     req.nextUrl.pathname === path
   )
-
+  
+  const isSetupUsernamePath = req.nextUrl.pathname === setupUsernamePath
+  
   // If trying to access protected route without session
   if (isProtectedPath && !session) {
     const redirectUrl = req.nextUrl.clone()
@@ -72,9 +75,16 @@ export async function middleware(req: NextRequest) {
     redirectUrl.searchParams.set('redirectTo', req.nextUrl.pathname)
     return NextResponse.redirect(redirectUrl)
   }
-
-  // If trying to access auth page while logged in
-  if (req.nextUrl.pathname === '/auth' && session) {
+  
+  // If trying to access setup-username without session, redirect to auth
+  if (isSetupUsernamePath && !session) {
+    const redirectUrl = req.nextUrl.clone()
+    redirectUrl.pathname = '/auth'
+    return NextResponse.redirect(redirectUrl)
+  }
+  
+  // If trying to access auth page while logged in (but allow setup-username)
+  if (req.nextUrl.pathname === '/auth' && session && !isSetupUsernamePath) {
     const redirectUrl = req.nextUrl.clone()
     redirectUrl.pathname = '/dashboard'
     return NextResponse.redirect(redirectUrl)

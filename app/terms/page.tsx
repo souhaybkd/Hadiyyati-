@@ -474,7 +474,7 @@ export default function TermsPage() {
             <p className="mb-4 text-gray-700">For questions about these Terms, please contact us at:</p>
             <ul className="list-none mb-4 text-gray-700 space-y-2">
               <li><strong>Hadiyyati Ltd</strong></li>
-              <li>Email: info@hadiyyati.com</li>
+              <li>Email: info@hadiyyati.me</li>
               <li>Website: www.hadiyyati.me</li>
               <li>Registered Office: 5, Brayford Square, London, E1 0SG, UNITED KINGDOM</li>
             </ul>

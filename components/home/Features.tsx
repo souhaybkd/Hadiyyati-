@@ -104,7 +104,7 @@ export function Features() {
           <div className="bg-design-gray-100 rounded-design-image aspect-video flex items-center justify-center mb-8 overflow-hidden border border-design-primary/20 shadow-design-card">
             <img 
               src="/assets/img/dashboard.png" 
-              alt="Hadiaytti Dashboard Preview showing wishlist management, settings, and mobile preview" 
+              alt="hadiyyati Dashboard Preview showing wishlist management, settings, and mobile preview" 
               className="w-full h-full object-contain rounded-design-image"
             />
           </div>

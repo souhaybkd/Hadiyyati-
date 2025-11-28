@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -14,6 +14,9 @@ export function AuthForm() {
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [name, setName] = useState('')
+    const [username, setUsername] = useState('')
+    const [usernameError, setUsernameError] = useState('')
+    const [isCheckingUsername, setIsCheckingUsername] = useState(false)
     const [showPassword, setShowPassword] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState('')
@@ -42,12 +45,27 @@ export function AuthForm() {
                 // Redirect to dashboard on successful login
                 window.location.href = '/dashboard'
             } else if (mode === 'register') {
+                // Validate username before signup
+                if (!username.trim()) {
+                    setError('Username is required')
+                    setIsLoading(false)
+                    return
+                }
+
+                const isUsernameAvailable = await checkUsernameAvailability(username)
+                if (!isUsernameAvailable) {
+                    setError(usernameError || 'Please choose a different username')
+                    setIsLoading(false)
+                    return
+                }
+
                 const { data, error } = await supabase.auth.signUp({
                     email,
                     password,
                     options: {
                         data: {
                             full_name: name,
+                            preferred_username: username.toLowerCase().trim(),
                         },
                     },
                 })
@@ -84,6 +102,86 @@ export function AuthForm() {
             setIsLoading(false)
         }
     }
+
+    // Check username availability
+    const checkUsernameAvailability = async (usernameToCheck: string): Promise<boolean> => {
+        if (!usernameToCheck.trim()) {
+            setUsernameError('Username is required')
+            return false
+        }
+
+        // Validate username format
+        const usernameRegex = /^[a-zA-Z0-9_-]+$/
+        if (!usernameRegex.test(usernameToCheck)) {
+            setUsernameError('Username can only contain letters, numbers, underscores, and hyphens')
+            return false
+        }
+
+        if (usernameToCheck.length < 3) {
+            setUsernameError('Username must be at least 3 characters')
+            return false
+        }
+
+        if (usernameToCheck.length > 30) {
+            setUsernameError('Username must be less than 30 characters')
+            return false
+        }
+
+        setIsCheckingUsername(true)
+        setUsernameError('')
+
+        try {
+            // Check if username exists in profiles table
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('id')
+                .eq('username', usernameToCheck.toLowerCase().trim())
+                .single()
+
+            if (error && error.code !== 'PGRST116') {
+                // PGRST116 means no rows found, which is what we want
+                console.error('Error checking username:', error)
+                setUsernameError('Unable to check username availability. Please try again.')
+                setIsCheckingUsername(false)
+                return false
+            }
+
+            if (data) {
+                setUsernameError('This username is already taken')
+                setIsCheckingUsername(false)
+                return false
+            }
+
+            setUsernameError('')
+            setIsCheckingUsername(false)
+            return true
+        } catch (error) {
+            console.error('Error checking username:', error)
+            setUsernameError('Unable to check username availability. Please try again.')
+            setIsCheckingUsername(false)
+            return false
+        }
+    }
+
+    // Handle username change
+    const handleUsernameChange = (value: string) => {
+        setUsername(value)
+        setUsernameError('')
+    }
+
+    // Debounced username availability check
+    useEffect(() => {
+        if (username.trim().length >= 3) {
+            const timeoutId = setTimeout(() => {
+                checkUsernameAvailability(username)
+            }, 500)
+
+            return () => clearTimeout(timeoutId)
+        } else if (username.trim().length > 0 && username.trim().length < 3) {
+            setUsernameError('Username must be at least 3 characters')
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [username])
 
     const handleGoogleLogin = async () => {
         setIsLoading(true)
@@ -188,18 +286,50 @@ export function AuthForm() {
             <CardContent className="space-y-2">
                 <form onSubmit={handleSubmit} className="space-y-4">
                     {mode === 'register' && (
-                        <div className="space-y-2">
-                            <Label htmlFor="name" className="text-design-text-heading">Full Name</Label>
-                            <Input
-                                id="name"
-                                type="text"
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
-                                placeholder="Enter your full name"
-                                required
-                                className="h-12"
-                            />
-                        </div>
+                        <>
+                            <div className="space-y-2">
+                                <Label htmlFor="name" className="text-design-text-heading">Full Name</Label>
+                                <Input
+                                    id="name"
+                                    type="text"
+                                    value={name}
+                                    onChange={(e) => setName(e.target.value)}
+                                    placeholder="Enter your full name"
+                                    required
+                                    className="h-12"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="username" className="text-design-text-heading">
+                                    Username *
+                                </Label>
+                                <Input
+                                    id="username"
+                                    type="text"
+                                    value={username}
+                                    onChange={(e) => handleUsernameChange(e.target.value)}
+                                    placeholder="your-username"
+                                    required
+                                    className="h-12"
+                                    disabled={isCheckingUsername}
+                                />
+                                {usernameError && (
+                                    <p className="text-sm text-red-600">{usernameError}</p>
+                                )}
+                                {!usernameError && username.trim().length >= 3 && !isCheckingUsername && (
+                                    <p className="text-sm text-green-600 flex items-center gap-1">
+                                        <CheckCircle className="h-3 w-3" />
+                                        Username available
+                                    </p>
+                                )}
+                                {isCheckingUsername && (
+                                    <p className="text-sm text-muted-foreground">Checking availability...</p>
+                                )}
+                                <p className="text-xs text-muted-foreground">
+                                    Your wishlist will be at: hadiyyati.me/{username || 'your-username'}
+                                </p>
+                            </div>
+                        </>
                     )}
 
                     <div className="space-y-2">

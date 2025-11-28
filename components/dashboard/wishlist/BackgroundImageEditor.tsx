@@ -147,6 +147,38 @@ export function BackgroundImageEditor({
 
   return (
     <div className="space-y-4">
+      {/* Current Background Preview */}
+      {uploadedImage && (
+        <div className="space-y-2">
+          <Label className="text-base font-medium">Current Background Preview</Label>
+          <div className="relative w-full h-48 rounded-lg overflow-hidden border-2 border-gray-200 bg-gray-100">
+            <img 
+              src={uploadedImage} 
+              alt="Background preview" 
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+                e.currentTarget.parentElement!.innerHTML = '<div class="w-full h-full flex items-center justify-center text-gray-400">Failed to load image</div>';
+              }}
+            />
+            <div className="absolute top-2 right-2">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleRemoveBackground}
+                disabled={isLoading}
+                className="h-8 w-8 rounded-full bg-white/90 hover:bg-white shadow-md"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            This is how your background will appear on your public wishlist page
+          </p>
+        </div>
+      )}
+
       {/* Upload Section */}
       <div className="space-y-3">
         <div>
@@ -236,21 +268,7 @@ export function BackgroundImageEditor({
           </div>
         )}
 
-        {/* Remove Button for existing background */}
-        {uploadedImage && (
-          <div className="pt-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleRemoveBackground}
-              disabled={isLoading}
-              className="text-destructive hover:text-destructive"
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Remove Background Image
-            </Button>
-          </div>
-        )}
+        {/* Remove Button for existing background - moved to preview section */}
 
         {/* Tips */}
         <div className="text-xs text-muted-foreground space-y-1">

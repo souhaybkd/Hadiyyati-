@@ -230,7 +230,7 @@ function SuccessContent() {
         <Card className="mt-8">
           <CardContent className="pt-6">
             <div className="text-center space-y-2">
-              <h3 className="font-semibold">Thank you for using Hadiaytti!</h3>
+              <h3 className="font-semibold">Thank you for using hadiyyati!</h3>
               <div className="grid sm:grid-cols-2 gap-4 text-sm text-muted-foreground">
                 <div>
                   <p>• Email confirmation sent</p>

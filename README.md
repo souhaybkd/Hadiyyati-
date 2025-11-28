@@ -1,4 +1,4 @@
-# Hadiaytti - Gift-Giving Platform
+# hadiyyati - Gift-Giving Platform
 
 A bilingual (Arabic RTL + English LTR) gift-giving platform built with Next.js 15, Supabase, and Stripe.
 
@@ -315,8 +315,8 @@ This project is licensed under the MIT License.
 
 ## 📞 Support
 
-For support, email support@hadiaytti.com or join our community Discord.
+For support, email support@hadiyyati.com or join our community Discord.
 
 ---
 
-Built with ❤️ by the Hadiaytti Team 
+Built with ❤️ by the hadiyyati Team 

@@ -39,7 +39,7 @@ export default function GiftNotificationEmail({
   ],
   giftMessage,
   totalAmount = 29.99,
-  viewGiftUrl = 'https://hadiaytti.com/dashboard?tab=history',
+  viewGiftUrl = 'https://hadiyyati.com/dashboard?tab=history',
 }: GiftNotificationEmailProps) {
   const previewText = `🎁 You've received a gift from ${senderName}!`
 
@@ -52,10 +52,10 @@ export default function GiftNotificationEmail({
           {/* Header */}
           <Section style={header}>
             <Img
-              src="https://hadiaytti.com/logo.png"
+              src="https://hadiyyati.com/logo.png"
               width="50"
               height="50"
-              alt="Hadiaytti"
+              alt="hadiyyati"
               style={logo}
             />
             <Heading style={h1}>🎁 You've Got a Gift!</Heading>
@@ -68,7 +68,7 @@ export default function GiftNotificationEmail({
             </Text>
             
             <Text style={paragraph}>
-              Great news! <strong>{senderName}</strong> has sent you a wonderful gift through Hadiaytti! 
+              Great news! <strong>{senderName}</strong> has sent you a wonderful gift through hadiyyati! 
               Your wishlist items have been purchased and are on their way to you.
             </Text>
 
@@ -123,11 +123,11 @@ export default function GiftNotificationEmail({
 
             <Text style={paragraph}>
               You can view all your gift details, send a thank you note to {senderName}, 
-              and track your items in your Hadiaytti dashboard.
+              and track your items in your hadiyyati dashboard.
             </Text>
 
             <Text style={smallText}>
-              Thank you for using Hadiaytti - making gift-giving simple and meaningful! 💝
+              Thank you for using hadiyyati - making gift-giving simple and meaningful! 💝
             </Text>
           </Section>
 
@@ -135,18 +135,18 @@ export default function GiftNotificationEmail({
           <Section style={footer}>
             <Hr style={hr} />
             <Text style={footerText}>
-              This email was sent by Hadiaytti. If you have any questions, please{' '}
-              <Link href="mailto:support@hadiaytti.com" style={link}>
+              This email was sent by hadiyyati. If you have any questions, please{' '}
+              <Link href="mailto:support@hadiyyati.com" style={link}>
                 contact our support team
               </Link>
               .
             </Text>
             <Text style={footerText}>
-              <Link href="https://hadiaytti.com" style={link}>
-                Visit Hadiaytti
+              <Link href="https://hadiyyati.com" style={link}>
+                Visit hadiyyati
               </Link>{' '}
               |{' '}
-              <Link href="https://hadiaytti.com/unsubscribe" style={link}>
+              <Link href="https://hadiyyati.com/unsubscribe" style={link}>
                 Unsubscribe
               </Link>
             </Text>

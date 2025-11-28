@@ -1,19 +1,23 @@
 'use client'
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import React from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
-import { ImageIcon, ExternalLink, DollarSign, Loader2, Info } from "lucide-react";
+import { ImageIcon, ExternalLink, DollarSign, Loader2, Info, Upload, X, AlertCircle } from "lucide-react";
 import { 
   addWishlistItem, 
   updateWishlistItem, 
   type WishlistItem 
 } from "@/lib/actions/wishlist";
 import { getPlatformFeePercentage, calculateExpectedPayout } from "@/lib/actions/platform-settings";
+import { uploadProductImage, validateImageFile } from "@/lib/storage";
+import { createSupabaseClient } from "@/lib/supabase";
+import { cn } from "@/lib/utils";
 
 interface AddItemFormProps {
   item?: WishlistItem;
@@ -34,6 +38,11 @@ export function AddItemForm({ item, onItemAdded, onClose }: AddItemFormProps) {
   const [error, setError] = useState<string | null>(null);
   const [platformFeePercentage, setPlatformFeePercentage] = useState<number>(10);
   const [expectedPayout, setExpectedPayout] = useState<number>(0);
+  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   // Initialize form with item data if editing
   useEffect(() => {
@@ -46,6 +55,10 @@ export function AddItemForm({ item, onItemAdded, onClose }: AddItemFormProps) {
         description: item.description || '',
         is_public: item.is_public
       });
+      // Set uploaded image preview if editing
+      if (item.image_url) {
+        setUploadedImage(item.image_url);
+      }
     }
   }, [item]);
 
@@ -121,6 +134,82 @@ export function AddItemForm({ item, onItemAdded, onClose }: AddItemFormProps) {
   const handleChange = (field: string, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     if (error) setError(null);
+  };
+
+  const handleFileUpload = async (file: File) => {
+    if (!file) return
+
+    // Validate file
+    const validation = validateImageFile(file)
+    if (!validation.valid) {
+      setUploadError(validation.error || 'Invalid file')
+      return
+    }
+
+    setIsUploading(true)
+    setUploadError(null)
+
+    try {
+      const supabase = createSupabaseClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      
+      if (!user) {
+        setUploadError('Please log in to upload images')
+        setIsUploading(false)
+        return
+      }
+
+      const result = await uploadProductImage(file, user.id)
+
+      if (result.success && result.publicUrl) {
+        setUploadedImage(result.publicUrl)
+        setFormData(prev => ({ ...prev, image_url: result.publicUrl || '' }))
+        setUploadError(null)
+      } else {
+        setUploadError(result.error || 'Upload failed. Please try again.')
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to upload image'
+      setUploadError(errorMessage)
+    } finally {
+      setIsUploading(false)
+    }
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragging(true)
+  }
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragging(false)
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragging(false)
+    
+    const files = e.dataTransfer.files
+    if (files.length > 0) {
+      handleFileUpload(files[0])
+    }
+  }
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      handleFileUpload(file)
+    }
+  }
+
+  const clearImage = () => {
+    setUploadedImage(null)
+    setFormData(prev => ({ ...prev, image_url: '' }))
+    setUploadError(null)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
   };
 
   return (
@@ -230,18 +319,89 @@ export function AddItemForm({ item, onItemAdded, onClose }: AddItemFormProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="image_url">Image URL (Optional)</Label>
-            <div className="relative">
-              <ImageIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                id="image_url"
-                type="url"
-                value={formData.image_url}
-                onChange={(e) => handleChange('image_url', e.target.value)}
-                placeholder="https://example.com/image.jpg"
-                className="pl-10"
-              />
-            </div>
+            <Label htmlFor="image_upload">Product Image (Optional)</Label>
+            
+            {/* Image Preview */}
+            {uploadedImage && (
+              <div className="relative w-full h-48 rounded-lg overflow-hidden border border-gray-200">
+                <img 
+                  src={uploadedImage} 
+                  alt="Product preview" 
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="absolute top-2 right-2 h-8 w-8 rounded-full bg-white/90 hover:bg-white"
+                  onClick={clearImage}
+                  disabled={isUploading}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+
+            {/* Upload Area */}
+            {!uploadedImage && (
+              <div
+                className={cn(
+                  "border-2 border-dashed rounded-lg p-6 text-center transition-colors",
+                  isDragging ? "border-primary bg-primary/5" : "border-muted-foreground/25",
+                  "hover:border-primary hover:bg-primary/5"
+                )}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+              >
+                {isUploading ? (
+                  <div className="flex flex-col items-center gap-2">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    <p className="text-sm text-muted-foreground">Uploading image...</p>
+                  </div>
+                ) : (
+                  <>
+                    <Upload className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+                    <p className="text-sm font-medium mb-1">Drop your image here</p>
+                    <p className="text-xs text-muted-foreground mb-3">
+                      or click to browse your files
+                    </p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isUploading}
+                    >
+                      <ImageIcon className="h-4 w-4 mr-2" />
+                      Choose Image
+                    </Button>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      JPG, PNG, GIF, WebP - Max 5MB
+                    </p>
+                  </>
+                )}
+              </div>
+            )}
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleFileInputChange}
+              className="hidden"
+              disabled={isUploading}
+            />
+
+            {uploadError && (
+              <div className="flex items-center gap-2 text-destructive text-sm p-2 bg-destructive/10 rounded-md">
+                <AlertCircle className="h-4 w-4" />
+                <span>{uploadError}</span>
+              </div>
+            )}
           </div>
 
           <div className="space-y-2">

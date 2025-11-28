@@ -15,8 +15,8 @@ function getResend() {
 
 // Email configuration
 export const EMAIL_CONFIG = {
-  from: process.env.RESEND_FROM_EMAIL || 'Hadiaytti <noreply@hadiaytti.com>',
-  replyTo: process.env.RESEND_REPLY_TO_EMAIL || 'support@hadiaytti.com',
+  from: process.env.RESEND_FROM_EMAIL || 'hadiyyati <noreply@hadiyyati.com>',
+  replyTo: process.env.RESEND_REPLY_TO_EMAIL || 'support@hadiyyati.com',
   domain: process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
 } as const
 
@@ -88,7 +88,7 @@ export function getEmailData(type: EmailType, data: any) {
       }
     default:
       return {
-        subject: '📧 Notification from Hadiaytti',
+        subject: '📧 Notification from hadiyyati',
         viewUrl: `${baseUrl}/dashboard`,
       }
   }

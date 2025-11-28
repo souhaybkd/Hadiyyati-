@@ -151,7 +151,7 @@ export default async function WishlistPage(props: WishlistPageProps) {
               Back to Home
             </Link>
             <div className="text-sm text-muted-foreground">
-              Powered by Hadiaytti
+              Powered by hadiyyati
             </div>
           </div>
         </div>
@@ -226,7 +226,7 @@ export async function generateMetadata(props: WishlistPageProps): Promise<Metada
   const itemCount = items.filter(item => item.is_public).length
 
   return {
-    title: `${profile.full_name || profile.username}'s Wishlist | Hadiaytti`,
+    title: `${profile.full_name || profile.username}'s Wishlist | hadiyyati`,
     description: `Check out ${profile.full_name || profile.username}'s wishlist with ${itemCount} items. Find the perfect gift!`,
     openGraph: {
       title: `${profile.full_name || profile.username}'s Wishlist`,

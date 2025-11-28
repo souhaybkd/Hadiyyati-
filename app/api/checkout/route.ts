@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
             name: item.title,
             description: item.wishlist_owner_name 
               ? `Gift to ${item.wishlist_owner_name}` 
-              : 'Gift from Hadiaytti',
+              : 'Gift from hadiyyati',
             images: item.image_url ? [item.image_url] : [],
           },
           unit_amount: Math.round(item.price * 100), // Convert to cents

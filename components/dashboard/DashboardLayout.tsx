@@ -76,7 +76,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             <div className="flex h-16 items-center border-b border-design-gray-200 px-4 lg:h-[60px] lg:px-6">
               <Link href="/" className="flex items-center gap-2 font-semibold text-design-text-heading">
                 <Package2 className="h-6 w-6 text-design-primary" />
-                <span className="">Hadiaytti</span>
+                <span className="">hadiyyati</span>
               </Link>
             </div>
             <div className="flex-1 p-4">
@@ -110,7 +110,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             <div className="w-full flex-1 flex items-center justify-center">
               <Link href="/" className="flex items-center gap-2 font-semibold text-design-text-heading">
                 <Package2 className="h-6 w-6 text-design-primary" />
-                <span className="text-lg">Hadiaytti</span>
+                <span className="text-lg">hadiyyati</span>
               </Link>
             </div>
           </header>

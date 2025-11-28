@@ -229,6 +229,176 @@ export async function uploadProfileImage(file: File, userId: string): Promise<Up
 
   } catch (error) {
     console.error('Unexpected upload error:', error)
+      return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'An unknown error occurred during upload.' 
+    }
+  }
+}
+
+// Enhanced image optimization function for product images
+async function optimizeProductImage(file: File): Promise<File> {
+  return new Promise((resolve, reject) => {
+    const canvas = document.createElement('canvas')
+    const ctx = canvas.getContext('2d')
+    const img = new Image()
+    
+    img.onload = () => {
+      // Calculate optimal dimensions (max 800x800 for product images)
+      const MAX_SIZE = 800
+      let { width, height } = img
+      
+      if (width > height) {
+        if (width > MAX_SIZE) {
+          height = (height * MAX_SIZE) / width
+          width = MAX_SIZE
+        }
+      } else {
+        if (height > MAX_SIZE) {
+          width = (width * MAX_SIZE) / height
+          height = MAX_SIZE
+        }
+      }
+      
+      canvas.width = width
+      canvas.height = height
+      
+      // Draw and compress
+      ctx?.drawImage(img, 0, 0, width, height)
+      
+      canvas.toBlob(
+        (blob) => {
+          if (blob) {
+            const optimizedFile = new File([blob], file.name, {
+              type: 'image/jpeg', // Convert to JPEG for better compression
+              lastModified: Date.now()
+            })
+            resolve(optimizedFile)
+          } else {
+            reject(new Error('Failed to optimize product image'))
+          }
+        },
+        'image/jpeg',
+        0.85 // 85% quality
+      )
+    }
+    
+    img.onerror = () => reject(new Error('Failed to load image for optimization'))
+    img.src = URL.createObjectURL(file)
+  })
+}
+
+// Generate secure file path for product images
+function generateProductFilePath(userId: string, originalName: string): string {
+  // Sanitize filename and add timestamp
+  const timestamp = Date.now()
+  const randomSuffix = Math.random().toString(36).substring(2, 8)
+  const extension = originalName.split('.').pop()?.toLowerCase() || 'jpg'
+  const safeFilename = `product_${timestamp}_${randomSuffix}.${extension}`
+  
+  return `${userId}/${safeFilename}`
+}
+
+// Upload product image to Supabase Storage (client-side)
+export async function uploadProductImage(file: File, userId: string): Promise<UploadResult> {
+  const supabase = createSupabaseClient()
+  
+  try {
+    // 1. Validate user identity from the session
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+
+    if (userError || !user) {
+      console.error('Authentication error:', userError)
+      return { success: false, error: 'Authentication failed. Please log in again.' }
+    }
+
+    if (user.id !== userId) {
+      console.error('User ID mismatch:', { sessionUserId: user.id, providedUserId: userId })
+      return { success: false, error: 'User ID mismatch. Please refresh and try again.' }
+    }
+
+    // 2. Validate file
+    const validation = validateImageFile(file)
+    if (!validation.valid) {
+      return { success: false, error: validation.error }
+    }
+
+    // 3. Optimize image for product (800x800 max)
+    let fileToUpload = file
+    try {
+      if (file.size > 1024 * 1024) { // Only optimize files > 1MB
+        fileToUpload = await optimizeProductImage(file)
+        console.log(`Product image optimized: ${file.size} -> ${fileToUpload.size} bytes`)
+      }
+    } catch (optimizationError) {
+      console.warn('Product image optimization failed, using original:', optimizationError)
+      // Continue with original file if optimization fails
+    }
+
+    // 4. Generate secure file path
+    const filePath = generateProductFilePath(user.id, file.name)
+
+    // 5. Upload the file with retry logic
+    const uploadWithRetry = async (attempts = 3): Promise<any> => {
+      for (let i = 0; i < attempts; i++) {
+        try {
+          const { data, error } = await supabase.storage
+            .from('product-images')
+            .upload(filePath, fileToUpload, {
+              cacheControl: '3600',
+              upsert: false,
+              contentType: fileToUpload.type
+            })
+          
+          if (error) throw error
+          return { data, error: null }
+        } catch (error) {
+          if (i === attempts - 1) throw error
+          await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1))) // Exponential backoff
+        }
+      }
+    }
+
+    const { data: uploadData, error: uploadError } = await uploadWithRetry()
+
+    if (uploadError) {
+      console.error('Supabase upload error:', uploadError)
+      
+      // Provide specific error messages
+      if (uploadError.message.includes('permission')) {
+        return { success: false, error: 'Permission denied. Please check your account status.' }
+      }
+      if (uploadError.message.includes('size')) {
+        return { success: false, error: 'File is too large. Please use an image under 5MB.' }
+      }
+      if (uploadError.message.includes('duplicate')) {
+        return { success: false, error: 'This file already exists. Please try again.' }
+      }
+      
+      return { success: false, error: `Upload failed: ${uploadError.message}` }
+    }
+
+    // 6. Get public URL
+    const { data: publicUrlData } = supabase.storage
+      .from('product-images')
+      .getPublicUrl(filePath)
+
+    if (!publicUrlData.publicUrl) {
+      return { success: false, error: 'File uploaded but failed to get public URL.' }
+    }
+
+    // 7. Return success with metadata
+    return { 
+      success: true, 
+      publicUrl: publicUrlData.publicUrl,
+      metadata: {
+        size: fileToUpload.size,
+        format: fileToUpload.type
+      }
+    }
+
+  } catch (error) {
+    console.error('Unexpected upload error:', error)
     return { 
       success: false, 
       error: error instanceof Error ? error.message : 'An unknown error occurred during upload.' 
@@ -433,9 +603,179 @@ export async function uploadBackgroundImage(file: File, userId: string): Promise
 
   } catch (error) {
     console.error('Unexpected upload error:', error)
+      return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'An unknown error occurred during upload.' 
+    }
+  }
+}
+
+// Enhanced image optimization function for product images
+async function optimizeProductImage(file: File): Promise<File> {
+  return new Promise((resolve, reject) => {
+    const canvas = document.createElement('canvas')
+    const ctx = canvas.getContext('2d')
+    const img = new Image()
+    
+    img.onload = () => {
+      // Calculate optimal dimensions (max 800x800 for product images)
+      const MAX_SIZE = 800
+      let { width, height } = img
+      
+      if (width > height) {
+        if (width > MAX_SIZE) {
+          height = (height * MAX_SIZE) / width
+          width = MAX_SIZE
+        }
+      } else {
+        if (height > MAX_SIZE) {
+          width = (width * MAX_SIZE) / height
+          height = MAX_SIZE
+        }
+      }
+      
+      canvas.width = width
+      canvas.height = height
+      
+      // Draw and compress
+      ctx?.drawImage(img, 0, 0, width, height)
+      
+      canvas.toBlob(
+        (blob) => {
+          if (blob) {
+            const optimizedFile = new File([blob], file.name, {
+              type: 'image/jpeg', // Convert to JPEG for better compression
+              lastModified: Date.now()
+            })
+            resolve(optimizedFile)
+          } else {
+            reject(new Error('Failed to optimize product image'))
+          }
+        },
+        'image/jpeg',
+        0.85 // 85% quality
+      )
+    }
+    
+    img.onerror = () => reject(new Error('Failed to load image for optimization'))
+    img.src = URL.createObjectURL(file)
+  })
+}
+
+// Generate secure file path for product images
+function generateProductFilePath(userId: string, originalName: string): string {
+  // Sanitize filename and add timestamp
+  const timestamp = Date.now()
+  const randomSuffix = Math.random().toString(36).substring(2, 8)
+  const extension = originalName.split('.').pop()?.toLowerCase() || 'jpg'
+  const safeFilename = `product_${timestamp}_${randomSuffix}.${extension}`
+  
+  return `${userId}/${safeFilename}`
+}
+
+// Upload product image to Supabase Storage (client-side)
+export async function uploadProductImage(file: File, userId: string): Promise<UploadResult> {
+  const supabase = createSupabaseClient()
+  
+  try {
+    // 1. Validate user identity from the session
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+
+    if (userError || !user) {
+      console.error('Authentication error:', userError)
+      return { success: false, error: 'Authentication failed. Please log in again.' }
+    }
+
+    if (user.id !== userId) {
+      console.error('User ID mismatch:', { sessionUserId: user.id, providedUserId: userId })
+      return { success: false, error: 'User ID mismatch. Please refresh and try again.' }
+    }
+
+    // 2. Validate file
+    const validation = validateImageFile(file)
+    if (!validation.valid) {
+      return { success: false, error: validation.error }
+    }
+
+    // 3. Optimize image for product (800x800 max)
+    let fileToUpload = file
+    try {
+      if (file.size > 1024 * 1024) { // Only optimize files > 1MB
+        fileToUpload = await optimizeProductImage(file)
+        console.log(`Product image optimized: ${file.size} -> ${fileToUpload.size} bytes`)
+      }
+    } catch (optimizationError) {
+      console.warn('Product image optimization failed, using original:', optimizationError)
+      // Continue with original file if optimization fails
+    }
+
+    // 4. Generate secure file path
+    const filePath = generateProductFilePath(user.id, file.name)
+
+    // 5. Upload the file with retry logic
+    const uploadWithRetry = async (attempts = 3): Promise<any> => {
+      for (let i = 0; i < attempts; i++) {
+        try {
+          const { data, error } = await supabase.storage
+            .from('product-images')
+            .upload(filePath, fileToUpload, {
+              cacheControl: '3600',
+              upsert: false,
+              contentType: fileToUpload.type
+            })
+          
+          if (error) throw error
+          return { data, error: null }
+        } catch (error) {
+          if (i === attempts - 1) throw error
+          await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1))) // Exponential backoff
+        }
+      }
+    }
+
+    const { data: uploadData, error: uploadError } = await uploadWithRetry()
+
+    if (uploadError) {
+      console.error('Supabase upload error:', uploadError)
+      
+      // Provide specific error messages
+      if (uploadError.message.includes('permission')) {
+        return { success: false, error: 'Permission denied. Please check your account status.' }
+      }
+      if (uploadError.message.includes('size')) {
+        return { success: false, error: 'File is too large. Please use an image under 5MB.' }
+      }
+      if (uploadError.message.includes('duplicate')) {
+        return { success: false, error: 'This file already exists. Please try again.' }
+      }
+      
+      return { success: false, error: `Upload failed: ${uploadError.message}` }
+    }
+
+    // 6. Get public URL
+    const { data: publicUrlData } = supabase.storage
+      .from('product-images')
+      .getPublicUrl(filePath)
+
+    if (!publicUrlData.publicUrl) {
+      return { success: false, error: 'File uploaded but failed to get public URL.' }
+    }
+
+    // 7. Return success with metadata
+    return { 
+      success: true, 
+      publicUrl: publicUrlData.publicUrl,
+      metadata: {
+        size: fileToUpload.size,
+        format: fileToUpload.type
+      }
+    }
+
+  } catch (error) {
+    console.error('Unexpected upload error:', error)
     return { 
       success: false, 
       error: error instanceof Error ? error.message : 'An unknown error occurred during upload.' 
     }
   }
-} 
+}

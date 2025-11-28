@@ -19,8 +19,8 @@ export function Footer() {
             <p className="text-design-secondary mb-2 text-sm">Company Number: 16762322</p>
             <div className="flex items-center justify-center gap-2 md:justify-start">
               <Mail className="h-4 w-4 text-design-secondary" />
-              <a href="mailto:info@hadiyyati.com" className="text-design-secondary hover:opacity-80 transition-design">
-                info@hadiyyati.com
+              <a href="mailto:info@hadiyyati.me" className="text-design-secondary hover:opacity-80 transition-design">
+                info@hadiyyati.me
               </a>
             </div>
             <p className="text-design-secondary mt-2 text-sm">
