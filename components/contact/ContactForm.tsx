@@ -93,7 +93,7 @@ export function ContactForm() {
             </CardContent>
             <CardFooter className="text-sm text-design-text-muted justify-center">
               <p>
-                Or email us at <a href="mailto:info@hadiyyati.com" className="font-medium text-design-primary hover:underline">info@hadiyyati.com</a>
+                Or email us at <a href="mailto:info@hadiyyati.me" className="font-medium text-design-primary hover:underline">info@hadiyyati.me</a>
               </p>
             </CardFooter>
           </Card>
