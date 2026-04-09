@@ -6,15 +6,22 @@ import { CartProvider } from '@/lib/contexts/CartContext'
 import { MainLayout } from '@/components/shared'
 import { Toaster } from '@/components/ui'
 
+const favicon = '/assets/img/Web-ICON-1.png'
+
 const bricolage = Bricolage_Grotesque({
   subsets: ['latin'],
   display: 'swap',
   variable: '--font-bricolage',
 })
 
-export const metadata = {
+export const metadata: Metadata = {
   title: 'hadiyyati - Gift-Giving Platform',
   description: 'A bilingual gift-giving platform connecting gift-givers with recipients',
+  icons: {
+    icon: favicon,
+    shortcut: favicon,
+    apple: favicon,
+  },
 }
 
 export default function RootLayout({

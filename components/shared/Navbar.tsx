@@ -2,12 +2,13 @@
 
 import React from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { useLanguage } from '@/lib/contexts/LanguageContext'
 import { LanguageToggle } from '@/components/shared'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Gift, Menu, X } from 'lucide-react'
+import { Menu, X } from 'lucide-react'
 
 export function Navbar() {
   const pathname = usePathname()
@@ -34,11 +35,15 @@ export function Navbar() {
       <div className="design-container">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link href="/" className="flex items-center space-x-2 group">
-            <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center group-hover:bg-white/30 transition-design">
-              <Gift className="h-5 w-5 text-white" />
-            </div>
-            <span className="text-xl font-bold text-white">Hadiyyati</span>
+          <Link href="/" className="flex items-center gap-2 group shrink-0">
+            <Image
+              src="/assets/img/LOGO.png"
+              alt="Hadiyyati"
+              width={100}
+              height={120}
+              className="h-9 w-auto object-contain md:h-10"
+              priority
+            />
           </Link>
 
           {/* Desktop Navigation */}

@@ -2,7 +2,8 @@
 
 import React from 'react'
 import Link from 'next/link'
-import { Gift, Mail } from 'lucide-react'
+import Image from 'next/image'
+import { Mail } from 'lucide-react'
 
 export function Footer() {
   return (
@@ -11,9 +12,14 @@ export function Footer() {
         <div className="flex flex-col items-center gap-8 text-center md:flex-row md:justify-between md:text-left">
           {/* Logo and Info */}
           <div>
-            <div className="mb-4 flex items-center justify-center gap-2 md:justify-start">
-              <Gift className="h-6 w-6 text-design-secondary" />
-              <span className="text-xl font-bold text-design-secondary">Hadiyyati</span>
+            <div className="mb-4 flex justify-center md:justify-start">
+              <Image
+                src="/assets/img/LOGO.png"
+                alt="Hadiyyati"
+                width={140}
+                height={168}
+                className="h-16 w-auto object-contain md:h-[4.5rem]"
+              />
             </div>
             <p className="text-design-secondary mb-2 max-w-md">5, Brayford Square, London, E1 0SG, UNITED KINGDOM</p>
             <p className="text-design-secondary mb-2 text-sm">Company Number: 16762322</p>
