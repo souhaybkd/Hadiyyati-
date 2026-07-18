@@ -1,6 +1,6 @@
 import { headers } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
-import { stripe } from '@/lib/stripe'
+import { getStripeClient, getStripeWebhookSecret } from '@/lib/stripe'
 import { createOrder, sendGiftNotification } from '@/lib/actions/checkout'
 
 export async function POST(request: NextRequest) {
@@ -12,14 +12,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'No signature' }, { status: 400 })
   }
 
+  const stripe = await getStripeClient()
+  const webhookSecret = await getStripeWebhookSecret()
+
+  if (!webhookSecret) {
+    console.error('Stripe webhook secret is not configured')
+    return NextResponse.json({ error: 'Webhook not configured' }, { status: 500 })
+  }
+
   let event: any
 
   try {
-    event = stripe.webhooks.constructEvent(
-      body,
-      signature,
-      process.env.STRIPE_WEBHOOK_SECRET!
-    )
+    event = stripe.webhooks.constructEvent(body, signature, webhookSecret)
   } catch (err) {
     console.error('Webhook signature verification failed:', err)
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 })
@@ -55,6 +59,7 @@ async function handleCheckoutSessionCompleted(session: any) {
 
   try {
     // Get the full session with line items
+    const stripe = await getStripeClient()
     const fullSession = await stripe.checkout.sessions.retrieve(session.id, {
       expand: ['line_items.data.price.product']
     })
@@ -79,7 +84,8 @@ async function handleCheckoutSessionCompleted(session: any) {
 
     console.log('Prepared order items with wishlist_item_ids:', orderItems)
 
-    // Create order in database
+    // Create order in database.
+    // Pass the buyer id explicitly since a webhook request has no user session.
     const order = await createOrder(
       session.id,
       (session.amount_total || 0) / 100, // Convert from cents
@@ -88,7 +94,8 @@ async function handleCheckoutSessionCompleted(session: any) {
       metadata.custom_message || null,
       metadata.is_gift === 'true',
       metadata.wishlist_owner_ids || null,
-      orderItems
+      orderItems,
+      metadata.user_id || undefined
     )
 
     // Send gift notification to wishlist owners if it's a gift

@@ -14,6 +14,20 @@ export async function getUsers(filters?: {
   const supabase = await createSupabaseServerClient()
   
   try {
+    // Authorization: this returns all users' PII (emails), so it must be admin-only.
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Unauthorized')
+
+    const { data: adminProfile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    if (adminProfile?.role !== 'admin') {
+      throw new Error('Admin access required')
+    }
+
     let query = supabase
       .from('profiles')
       .select('*')

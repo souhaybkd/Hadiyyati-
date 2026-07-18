@@ -40,6 +40,7 @@ export function UserManagement() {
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive' | 'banned'>('all')
   const [error, setError] = useState<string | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
   const supabase = createSupabaseClient()
 
   useEffect(() => {
@@ -72,6 +73,7 @@ export function UserManagement() {
   }
 
   const updateUserStatus = async (userId: string, newStatus: string) => {
+    setActionError(null)
     try {
       const { error } = await supabase
         .from('profiles')
@@ -88,11 +90,12 @@ export function UserManagement() {
       ))
     } catch (err) {
       console.error('Error updating user status:', err)
-      setError('Failed to update user status')
+      setActionError('Failed to update user status. Please try again.')
     }
   }
 
   const updateUserRole = async (userId: string, newRole: string) => {
+    setActionError(null)
     try {
       const { error } = await supabase
         .from('profiles')
@@ -109,14 +112,15 @@ export function UserManagement() {
       ))
     } catch (err) {
       console.error('Error updating user role:', err)
-      setError('Failed to update user role')
+      setActionError('Failed to update user role. Please try again.')
     }
   }
 
   const filteredUsers = users.filter(user => {
-    const matchesSearch = user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user.email.toLowerCase().includes(searchTerm.toLowerCase())
+    const term = searchTerm.toLowerCase()
+    const matchesSearch = (user.username || '').toLowerCase().includes(term) ||
+                         (user.full_name || '').toLowerCase().includes(term) ||
+                         (user.email || '').toLowerCase().includes(term)
     
     if (statusFilter === 'all') return matchesSearch
     return matchesSearch && user.status === statusFilter
@@ -190,6 +194,13 @@ export function UserManagement() {
         </Badge>
       </div>
 
+      {actionError && (
+        <div className="p-3 rounded-md bg-red-50 border border-red-200 text-sm text-red-700 flex items-center gap-2">
+          <Ban className="h-4 w-4" />
+          {actionError}
+        </div>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -256,11 +267,11 @@ export function UserManagement() {
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-design-primary text-white flex items-center justify-center text-sm font-medium">
-                        {user.full_name.charAt(0).toUpperCase()}
+                        {(user.full_name || user.username || user.email || '?').charAt(0).toUpperCase()}
                       </div>
                       <div>
-                        <div className="font-medium text-design-text-heading">{user.full_name}</div>
-                        <div className="text-sm text-design-text-muted">@{user.username}</div>
+                        <div className="font-medium text-design-text-heading">{user.full_name || 'Unnamed user'}</div>
+                        <div className="text-sm text-design-text-muted">@{user.username || 'unknown'}</div>
                       </div>
                     </div>
                   </TableCell>

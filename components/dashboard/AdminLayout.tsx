@@ -19,7 +19,8 @@ import {
   Gift,
   Menu,
   Bell,
-  Database
+  Database,
+  CreditCard
 } from 'lucide-react'
 
 const adminNavigation = [
@@ -28,6 +29,7 @@ const adminNavigation = [
   { name: 'Orders', tab: 'orders', icon: ShoppingCart },
   { name: 'Transactions', tab: 'transactions', icon: DollarSign },
   { name: 'Notifications', tab: 'notifications', icon: Bell },
+  { name: 'Payment Gateways', tab: 'payments', icon: CreditCard },
   { name: 'Platform Settings', tab: 'settings', icon: Settings },
 ]
 

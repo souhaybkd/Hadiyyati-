@@ -19,12 +19,13 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
   } from "@/components/ui/alert-dialog";
-import { logout } from "@/app/auth/actions";
+import { logout, deleteAccount } from "@/app/auth/actions";
 import { getUserProfile, updateProfile, type Profile } from "@/lib/actions/wishlist";
 import { cn } from "@/lib/utils";
 
 export function ProfileSettings() {
     const [isLoggingOut, setIsLoggingOut] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
     const router = useRouter();
     
     const [profile, setProfile] = useState<Profile | null>(null);
@@ -90,6 +91,24 @@ export function ProfileSettings() {
             // Optionally, show an error message to the user
         } finally {
             setIsLoggingOut(false);
+        }
+    };
+
+    const handleDeleteAccount = async () => {
+        setIsDeleting(true);
+        setError(null);
+        try {
+            const result = await deleteAccount();
+            if (result?.error) {
+                setError(result.error.message);
+                setIsDeleting(false);
+                return;
+            }
+            // Account deleted — send the user to the home page.
+            router.push('/');
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to delete account.');
+            setIsDeleting(false);
         }
     };
     
@@ -193,7 +212,16 @@ export function ProfileSettings() {
             <CardContent>
                 <AlertDialog>
                     <AlertDialogTrigger asChild>
-                        <Button variant="destructive">Delete Account</Button>
+                        <Button variant="destructive" disabled={isDeleting}>
+                            {isDeleting ? (
+                                <>
+                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    Deleting...
+                                </>
+                            ) : (
+                                'Delete Account'
+                            )}
+                        </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                         <AlertDialogHeader>
@@ -204,8 +232,17 @@ export function ProfileSettings() {
                         </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction>Continue</AlertDialogAction>
+                        <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={(e) => {
+                                e.preventDefault()
+                                handleDeleteAccount()
+                            }}
+                            disabled={isDeleting}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                            {isDeleting ? 'Deleting...' : 'Delete my account'}
+                        </AlertDialogAction>
                         </AlertDialogFooter>
                     </AlertDialogContent>
                 </AlertDialog>

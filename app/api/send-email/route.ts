@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { createSupabaseServiceClient } from '@/lib/supabase-service'
 import { sendEmail, getEmailData, isValidEmail, type EmailType } from '@/lib/resend'
 import { render } from '@react-email/render'
 import GiftNotificationEmail from '@/emails/GiftNotificationEmail'
@@ -112,7 +112,9 @@ export async function POST(request: NextRequest) {
     // Log email notification in database
     if (orderId) {
       try {
-        const supabase = await createSupabaseServerClient()
+        // Service client: this looks the recipient up by email across all users
+        // (not permitted under RLS) and records the notification.
+        const supabase = createSupabaseServiceClient()
         
         // Find recipient by email
         const { data: recipient } = await supabase

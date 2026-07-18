@@ -16,10 +16,14 @@ export async function middleware(req: NextRequest) {
     return res
   }
 
-  let session = null
-  
+  // Verified user (null if not authenticated). We use getUser() rather than
+  // getSession() because getUser() validates the JWT with the Supabase auth
+  // server, which is required before making authorization decisions.
+  let user: { id: string } | null = null
+  let supabase: ReturnType<typeof createServerClient> | null = null
+
   try {
-    const supabase = createServerClient(
+    supabase = createServerClient(
       supabaseUrl,
       supabaseAnonKey,
       {
@@ -40,18 +44,19 @@ export async function middleware(req: NextRequest) {
       }
     )
 
-    // Refresh session if expired
     const {
-      data: { session: userSession },
-    } = await supabase.auth.getSession()
-    
-    session = userSession
+      data: { user: verifiedUser },
+    } = await supabase.auth.getUser()
+
+    user = verifiedUser
   } catch (error) {
     console.error('Middleware error:', error)
     // If there's an error, allow the request to continue
     // This prevents the entire site from breaking if Supabase is down
     return res
   }
+
+  const session = user
 
   // Protected routes that require authentication
   const protectedPaths = ['/dashboard', '/admin']
@@ -92,40 +97,18 @@ export async function middleware(req: NextRequest) {
 
   // Check admin routes
   if (req.nextUrl.pathname.startsWith('/admin')) {
-    if (!session) {
+    if (!user || !supabase) {
       const redirectUrl = req.nextUrl.clone()
       redirectUrl.pathname = '/auth'
       return NextResponse.redirect(redirectUrl)
     }
 
     try {
-      // Recreate supabase client for admin check
-      const supabase = createServerClient(
-        supabaseUrl!,
-        supabaseAnonKey!,
-        {
-          cookies: {
-            getAll() {
-              return req.cookies.getAll()
-            },
-            setAll(cookiesToSet) {
-              cookiesToSet.forEach(({ name, value, options }) => {
-                res.cookies.set({
-                  name,
-                  value,
-                  ...options,
-                })
-              })
-            },
-          },
-        }
-      )
-
-      // Check if user is admin
+      // Check if user is admin (reuse the already-created, authenticated client)
       const { data: profile } = await supabase
         .from('profiles')
         .select('role')
-        .eq('id', session.user.id)
+        .eq('id', user.id)
         .single()
 
       if (profile?.role !== 'admin') {

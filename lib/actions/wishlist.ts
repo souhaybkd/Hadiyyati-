@@ -1,6 +1,7 @@
 'use server'
 
 import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { createSupabaseServiceClient } from '@/lib/supabase-service'
 import { revalidatePath } from 'next/cache'
 import { deleteStorageFile, extractFilePathFromUrl, extractBackgroundFilePathFromUrl } from '@/lib/supabase-admin'
 
@@ -8,10 +9,11 @@ export type Profile = {
   id: string;
   username: string;
   full_name: string;
-  email: string;
+  // Sensitive/internal fields — omitted from public wishlist responses.
+  email?: string;
+  role?: 'user' | 'admin';
   avatar_url: string | null;
   background_image_url: string | null;
-  role: 'user' | 'admin';
   wishlist_color_palette: string | null;
   wishlist_description: string | null;
   created_at: string;
@@ -153,13 +155,22 @@ export async function getUserProfile(): Promise<Profile | null> {
   return profile
 }
 
+// Columns that are safe to expose on public wishlist pages.
+// NOTE: never include `email`, `role` or `status` here — these are returned to
+// unauthenticated visitors and would leak PII / internal fields.
+const PUBLIC_PROFILE_COLUMNS =
+  'id, username, full_name, avatar_url, background_image_url, wishlist_color_palette, wishlist_description, created_at, updated_at'
+
 // Get public wishlist by user_id (for public sharing)
 export async function getPublicWishlist(userId: string): Promise<WishlistWithProfile | null> {
-  const supabase = await createSupabaseServerClient()
+  // Public pages are viewed by anonymous visitors and other users, who are not
+  // allowed to read profile rows directly under RLS. Use the service client and
+  // return only the explicitly whitelisted, non-sensitive columns.
+  const supabase = createSupabaseServiceClient()
   
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
-    .select('*')
+    .select(PUBLIC_PROFILE_COLUMNS)
     .eq('id', userId)
     .single()
 
@@ -185,11 +196,13 @@ export async function getPublicWishlist(userId: string): Promise<WishlistWithPro
 
 // Get public wishlist by username
 export async function getPublicWishlistByUsername(username: string): Promise<WishlistWithProfile | null> {
-  const supabase = await createSupabaseServerClient()
+  // See getPublicWishlist: public visitors can't read profiles under RLS, so use
+  // the service client and expose only the whitelisted public columns.
+  const supabase = createSupabaseServiceClient()
   
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
-    .select('*')
+    .select(PUBLIC_PROFILE_COLUMNS)
     .eq('username', username)
     .single()
 
@@ -496,20 +509,19 @@ export async function updateProfile(formData: FormData) {
       throw new Error('Could not retrieve your current profile information.')
     }
 
-    // Check username availability if it's being changed
+    // Check username availability if it's being changed. This is checked via a
+    // SECURITY DEFINER function because users can no longer read other profile
+    // rows directly under RLS.
     if (currentProfile.username !== username.toLowerCase().trim()) {
-      const { data: existingUser, error: usernameCheckError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('username', username.toLowerCase().trim())
-        .single()
+      const { data: isAvailable, error: usernameCheckError } = await supabase
+        .rpc('is_username_available', { check_username: username })
 
-      if (usernameCheckError && usernameCheckError.code !== 'PGRST116') {
+      if (usernameCheckError) {
         console.error('Username check error:', usernameCheckError)
         throw new Error('Could not verify username availability.')
       }
 
-      if (existingUser) {
+      if (!isAvailable) {
         throw new Error('This username is already taken. Please choose another one.')
       }
     }

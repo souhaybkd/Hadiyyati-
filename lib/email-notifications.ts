@@ -1,4 +1,4 @@
-import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { createSupabaseServiceClient } from '@/lib/supabase-service'
 
 interface GiftNotificationData {
   orderId: string
@@ -20,7 +20,7 @@ export async function sendGiftNotificationEmails(data: GiftNotificationData) {
   console.log('📧 Starting gift notification email process for order:', data.orderId)
   
   try {
-    const supabase = await createSupabaseServerClient()
+    const supabase = createSupabaseServiceClient()
     
     // Get recipient details
     const { data: recipients, error: recipientsError } = await supabase
@@ -127,7 +127,7 @@ export async function prepareGiftNotificationData(
   customMessage?: string
 ): Promise<GiftNotificationData | null> {
   try {
-    const supabase = await createSupabaseServerClient()
+    const supabase = createSupabaseServiceClient()
     
     // Get order with items
     const { data: order, error: orderError } = await supabase
@@ -186,7 +186,7 @@ export async function sendGiftNotificationToRecipients(
   console.log('📧 Sending gift notifications to specific recipients:', recipientEmails)
   
   try {
-    const supabase = await createSupabaseServerClient()
+    const supabase = createSupabaseServiceClient()
     
     // Get order details
     const { data: order, error: orderError } = await supabase

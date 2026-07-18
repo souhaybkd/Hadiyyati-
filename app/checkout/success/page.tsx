@@ -44,13 +44,77 @@ function SuccessContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const sessionId = searchParams?.get('session_id')
-  
+  const gateway = searchParams?.get('gateway')
+  const externalId = searchParams?.get('externalId')
+
   const [orderDetails, setOrderDetails] = useState<OrderDetails | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    const fetchOrderDetails = async () => {
+    const onSuccess = (data: OrderDetails) => {
+      setOrderDetails(data)
+      clearCart()
+      // Trigger storage event to notify other tabs to refresh dashboard
+      localStorage.setItem('payment_completed', Date.now().toString())
+    }
+
+    // Whish flow: poll the status endpoint (which also finalizes the order).
+    const fetchWhishOrder = async () => {
+      if (!externalId) {
+        setError('No payment reference provided')
+        setLoading(false)
+        return
+      }
+
+      const maxAttempts = 6
+      for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        try {
+          const response = await fetch(`/api/checkout/whish/status?externalId=${externalId}`)
+          const data = await response.json()
+
+          if (!response.ok) {
+            throw new Error(data.error || 'Failed to fetch payment status')
+          }
+
+          if (data.status === 'success') {
+            onSuccess({
+              id: `whish_${externalId}`,
+              status: 'complete',
+              amount_total: data.amount_total,
+              customer_email: data.customer_email,
+              metadata: {
+                custom_message: data.custom_message || undefined,
+                is_gift: data.is_gift ? 'true' : 'false',
+              },
+              line_items: data.line_items || [],
+            })
+            setLoading(false)
+            return
+          }
+
+          if (data.status === 'failed') {
+            setError('Your Whish payment was not successful.')
+            setLoading(false)
+            return
+          }
+
+          // pending -> wait then retry
+          await new Promise((resolve) => setTimeout(resolve, 2000))
+        } catch (err) {
+          setError(err instanceof Error ? err.message : 'An error occurred')
+          setLoading(false)
+          return
+        }
+      }
+
+      // Still pending after retries.
+      setError('Your payment is still being processed. Please check your dashboard shortly.')
+      setLoading(false)
+    }
+
+    // Stripe flow.
+    const fetchStripeOrder = async () => {
       if (!sessionId) {
         setError('No session ID provided')
         setLoading(false)
@@ -65,13 +129,7 @@ function SuccessContent() {
           throw new Error(data.error || 'Failed to fetch order details')
         }
 
-        setOrderDetails(data)
-        // Clear the cart after successful payment
-        clearCart()
-        
-        // Trigger storage event to notify other tabs to refresh dashboard
-        localStorage.setItem('payment_completed', Date.now().toString())
-        console.log('Payment completion event triggered for dashboard refresh')
+        onSuccess(data)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred')
       } finally {
@@ -79,8 +137,12 @@ function SuccessContent() {
       }
     }
 
-    fetchOrderDetails()
-  }, [sessionId, clearCart])
+    if (gateway === 'whish') {
+      fetchWhishOrder()
+    } else {
+      fetchStripeOrder()
+    }
+  }, [sessionId, gateway, externalId, clearCart])
 
   if (loading) {
     return (

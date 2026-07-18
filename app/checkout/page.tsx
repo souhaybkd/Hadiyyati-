@@ -1,8 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { Suspense } from 'react'
 import { useCart } from '@/lib/contexts/CartContext'
+import { getPublicGatewayStatusAction } from '@/lib/actions/payment-gateways'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -23,7 +25,9 @@ import {
   Trash2,
   Plus,
   Minus,
-  AlertCircle
+  AlertCircle,
+  Wallet,
+  CheckCircle
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -32,9 +36,12 @@ interface CheckoutForm {
   isGift: boolean
 }
 
-export default function CheckoutPage() {
+type PaymentMethod = 'stripe' | 'whish'
+
+function CheckoutContent() {
   const { cartItems, removeFromCart, clearCart } = useCart()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [phoneError, setPhoneError] = useState<string | null>(null)
@@ -42,6 +49,39 @@ export default function CheckoutPage() {
     customMessage: '',
     isGift: false
   })
+
+  // Available payment gateways (enabled + configured), loaded from the server.
+  const [gateways, setGateways] = useState<{ stripe: boolean; whish: boolean }>({
+    stripe: false,
+    whish: false,
+  })
+  const [gatewaysLoading, setGatewaysLoading] = useState(true)
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null)
+
+  // Surface a failed Whish redirect back to the user.
+  useEffect(() => {
+    if (searchParams?.get('error') === 'payment_failed') {
+      setError('Your payment was not completed. Please try again.')
+    }
+  }, [searchParams])
+
+  useEffect(() => {
+    const loadGateways = async () => {
+      try {
+        const status = await getPublicGatewayStatusAction()
+        setGateways(status)
+        // Default to the first available method.
+        setPaymentMethod(status.stripe ? 'stripe' : status.whish ? 'whish' : null)
+      } catch (err) {
+        console.error('Failed to load payment gateways:', err)
+      } finally {
+        setGatewaysLoading(false)
+      }
+    }
+    loadGateways()
+  }, [])
+
+  const availableCount = (gateways.stripe ? 1 : 0) + (gateways.whish ? 1 : 0)
 
   // Calculate totals
   const subtotal = cartItems.reduce((total, item) => total + (item.price * item.quantity), 0)
@@ -124,12 +164,21 @@ export default function CheckoutPage() {
       return
     }
 
+    if (!paymentMethod) {
+      setError('No payment method is available. Please contact support.')
+      return
+    }
+
     setLoading(true)
     setError(null)
     setPhoneError(null)
 
     try {
-      const response = await fetch('/api/checkout', {
+      // Route to the endpoint for the selected gateway. Both return a { url }
+      // to redirect the buyer to the hosted payment page.
+      const endpoint = paymentMethod === 'whish' ? '/api/checkout/whish' : '/api/checkout'
+
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -147,9 +196,11 @@ export default function CheckoutPage() {
         throw new Error(data.error || 'Failed to create checkout session')
       }
 
-      // Redirect to Stripe Checkout
+      // Redirect to the hosted payment page (Stripe Checkout / Whish collect URL)
       if (data.url) {
         window.location.href = data.url
+      } else {
+        throw new Error('Payment provider did not return a redirect URL')
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')
@@ -391,6 +442,43 @@ export default function CheckoutPage() {
                   </div>
                 </div>
 
+                {/* Payment method selection */}
+                <div className="space-y-2">
+                  <Label>Payment Method</Label>
+                  {gatewaysLoading ? (
+                    <div className="flex items-center gap-2 p-3 text-sm text-muted-foreground border rounded-lg">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Loading payment options...
+                    </div>
+                  ) : availableCount === 0 ? (
+                    <div className="flex items-center gap-2 p-3 text-sm text-destructive bg-destructive/10 rounded-md">
+                      <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                      No payment methods are currently available. Please check back later.
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {gateways.stripe && (
+                        <PaymentOption
+                          selected={paymentMethod === 'stripe'}
+                          onSelect={() => setPaymentMethod('stripe')}
+                          icon={<CreditCard className="h-5 w-5" />}
+                          title="Credit / Debit Card"
+                          description="Pay securely with Stripe"
+                        />
+                      )}
+                      {gateways.whish && (
+                        <PaymentOption
+                          selected={paymentMethod === 'whish'}
+                          onSelect={() => setPaymentMethod('whish')}
+                          icon={<Wallet className="h-5 w-5" />}
+                          title="Whish Pay"
+                          description="Pay with your Whish balance"
+                        />
+                      )}
+                    </div>
+                  )}
+                </div>
+
                 {error && (
                   <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-md">
                     {error}
@@ -399,7 +487,7 @@ export default function CheckoutPage() {
 
                 <Button 
                   onClick={handleCheckout}
-                  disabled={loading}
+                  disabled={loading || gatewaysLoading || availableCount === 0}
                   className="w-full"
                   size="lg"
                 >
@@ -418,7 +506,9 @@ export default function CheckoutPage() {
 
                 <div className="text-center">
                   <p className="text-xs text-muted-foreground">
-                    Secure checkout powered by Stripe
+                    {paymentMethod === 'whish'
+                      ? 'Secure checkout powered by Whish Pay'
+                      : 'Secure checkout powered by Stripe'}
                   </p>
                 </div>
               </CardContent>
@@ -485,4 +575,54 @@ export default function CheckoutPage() {
       </div>
     </div>
   )
-} 
+}
+
+function PaymentOption({
+  selected,
+  onSelect,
+  icon,
+  title,
+  description,
+}: {
+  selected: boolean
+  onSelect: () => void
+  icon: React.ReactNode
+  title: string
+  description: string
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className={`w-full flex items-center gap-3 p-3 border rounded-lg text-left transition-colors ${
+        selected ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'border-input hover:bg-muted/50'
+      }`}
+    >
+      <div className={`flex-shrink-0 ${selected ? 'text-primary' : 'text-muted-foreground'}`}>
+        {icon}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="font-medium text-sm">{title}</p>
+        <p className="text-xs text-muted-foreground">{description}</p>
+      </div>
+      {selected && <CheckCircle className="h-5 w-5 text-primary flex-shrink-0" />}
+    </button>
+  )
+}
+
+export default function CheckoutPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="container mx-auto px-4 py-12">
+          <div className="max-w-2xl mx-auto text-center">
+            <Loader2 className="h-16 w-16 mx-auto mb-6 animate-spin text-primary" />
+            <h1 className="text-2xl font-bold mb-4">Loading checkout...</h1>
+          </div>
+        </div>
+      }
+    >
+      <CheckoutContent />
+    </Suspense>
+  )
+}

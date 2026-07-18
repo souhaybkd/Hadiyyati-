@@ -9,12 +9,7 @@ import { useState, useEffect } from "react";
 import { Loader2, Trash2 } from "lucide-react";
 import { getUserPayoutSettings, savePayoutSettings, deletePayoutSettings } from "@/lib/actions/payout-settings";
 import { PayoutSettings as PayoutSettingsType } from "@/lib/types/database";
-// Simple toast alternative - we'll use alerts for now
-const showToast = (message: string, type: 'success' | 'error' = 'success') => {
-  // In a real app, you'd want to implement a proper toast system
-  // For now, we'll just log it and could show it in the UI
-  console.log(`${type.toUpperCase()}: ${message}`);
-};
+import { CheckCircle } from "lucide-react";
 
 const PayoutMethods = [
     { id: "bank", label: "Bank Transfer", fields: [{ name: "iban", label: "IBAN", placeholder: "SA03 8000 0000 6080 1016 7519" }, { name: "accountName", label: "Account Holder Name", placeholder: "John Doe" }] },
@@ -31,8 +26,14 @@ export function PayoutSettings() {
     const [deleting, setDeleting] = useState(false);
     const [existingSettings, setExistingSettings] = useState<PayoutSettingsType | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [success, setSuccess] = useState<string | null>(null);
     
     const currentMethod = PayoutMethods.find(m => m.id === selectedMethod);
+
+    const flashSuccess = (message: string) => {
+        setSuccess(message);
+        setTimeout(() => setSuccess(null), 3000);
+    };
 
     // Load existing payout settings
     useEffect(() => {
@@ -66,6 +67,7 @@ export function PayoutSettings() {
         e.preventDefault();
         setSaving(true);
         setError(null);
+        setSuccess(null);
 
         try {
             const formDataObj = new FormData();
@@ -77,17 +79,16 @@ export function PayoutSettings() {
             });
 
             await savePayoutSettings(formDataObj);
-            showToast('Payout settings saved successfully!', 'success');
-            
+
             // Reload settings to get the updated data
             const updatedSettings = await getUserPayoutSettings();
             setExistingSettings(updatedSettings);
+            flashSuccess('Payout settings saved successfully!');
             
         } catch (error) {
             console.error('Error saving payout settings:', error);
             const errorMessage = error instanceof Error ? error.message : 'Failed to save payout settings';
             setError(errorMessage);
-            showToast(errorMessage, 'error');
         } finally {
             setSaving(false);
         }
@@ -97,17 +98,18 @@ export function PayoutSettings() {
         if (!existingSettings) return;
         
         setDeleting(true);
+        setError(null);
+        setSuccess(null);
         try {
             await deletePayoutSettings();
             setExistingSettings(null);
             setFormData({});
             setSelectedMethod("bank");
-            showToast('Payout settings deleted successfully!', 'success');
+            flashSuccess('Payout settings deleted successfully!');
         } catch (error) {
             console.error('Error deleting payout settings:', error);
             const errorMessage = error instanceof Error ? error.message : 'Failed to delete payout settings';
             setError(errorMessage);
-            showToast(errorMessage, 'error');
         } finally {
             setDeleting(false);
         }
@@ -142,6 +144,14 @@ export function PayoutSettings() {
         {error && (
           <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-md">
             {error}
+          </div>
+        )}
+
+        {/* Success Message */}
+        {success && (
+          <div className="p-3 text-sm text-green-700 bg-green-50 border border-green-200 rounded-md flex items-center gap-2">
+            <CheckCircle className="h-4 w-4" />
+            {success}
           </div>
         )}
 

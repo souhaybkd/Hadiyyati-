@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { format } from 'date-fns'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -67,12 +67,13 @@ export function OrderManagement() {
   const [newStatus, setNewStatus] = useState('')
   const [adminNotes, setAdminNotes] = useState('')
 
+  // Only the status filter is applied server-side; free-text search is handled
+  // client-side (see filteredOrders) so typing doesn't refetch on every keystroke.
   const fetchOrders = useCallback(async (showRefreshing = true) => {
     try {
       if (showRefreshing) setRefreshing(true)
       const result = await getOrdersForAdmin({
         status: statusFilter !== 'all' ? statusFilter : undefined,
-        search: searchTerm || undefined,
         limit: 100
       })
       
@@ -84,23 +85,23 @@ export function OrderManagement() {
     } finally {
       if (showRefreshing) setRefreshing(false)
     }
-  }, [statusFilter, searchTerm])
+  }, [statusFilter])
 
+  // Full-screen skeleton only for the very first load; subsequent status-filter
+  // changes refresh in the background without wiping the table.
+  const initialLoad = useRef(true)
   useEffect(() => {
-    const loadOrders = async () => {
-      setLoading(true)
-      await fetchOrders(false)
-      setLoading(false)
+    const run = async () => {
+      if (initialLoad.current) {
+        setLoading(true)
+        await fetchOrders(false)
+        setLoading(false)
+        initialLoad.current = false
+      } else {
+        await fetchOrders(true)
+      }
     }
-    loadOrders()
-  }, [fetchOrders])
-
-  // Auto-refresh every 30 seconds
-  useEffect(() => {
-    const interval = setInterval(() => {
-      fetchOrders(false)
-    }, 30000)
-    return () => clearInterval(interval)
+    run()
   }, [fetchOrders])
 
   const handleViewDetails = async (order: DetailedOrder) => {

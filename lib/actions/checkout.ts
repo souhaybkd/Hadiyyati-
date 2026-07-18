@@ -1,6 +1,7 @@
 'use server'
 
 import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { createSupabaseServiceClient } from '@/lib/supabase-service'
 import { revalidatePath } from 'next/cache'
 import { prepareGiftNotificationData, sendGiftNotificationEmails } from '@/lib/email-notifications'
 
@@ -31,7 +32,9 @@ export type OrderItem = {
   created_at: string
 }
 
-// Create order record after successful payment
+// Create order record after successful payment.
+// `buyerUserId` should be provided when called from a server-to-server context
+// (Stripe webhook / Whish callback) where there is no user session cookie.
 export async function createOrder(
   stripeSessionId: string,
   totalAmount: number,
@@ -47,20 +50,39 @@ export async function createOrder(
     price: number
     quantity: number
     image_url: string | null
-  }>
+  }>,
+  buyerUserId?: string
 ) {
-  const supabase = await createSupabaseServerClient()
-  
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
-    throw new Error('User not authenticated')
+  // Use the service-role client so this works from webhooks/callbacks that have
+  // no user session and so RLS never blocks the order insert.
+  const supabase = createSupabaseServiceClient()
+
+  let userId = buyerUserId
+  if (!userId) {
+    const authClient = await createSupabaseServerClient()
+    const { data: { user } } = await authClient.auth.getUser()
+    if (!user) {
+      throw new Error('User not authenticated')
+    }
+    userId = user.id
+  }
+
+  // Idempotency: if an order already exists for this payment reference, reuse it.
+  const { data: existingOrder } = await supabase
+    .from('orders')
+    .select('*')
+    .eq('stripe_session_id', stripeSessionId)
+    .maybeSingle()
+
+  if (existingOrder) {
+    return existingOrder
   }
 
   // Create order
   const { data: order, error: orderError } = await supabase
     .from('orders')
     .insert({
-      user_id: user.id,
+      user_id: userId,
       stripe_session_id: stripeSessionId,
       status: 'completed',
       total_amount: totalAmount,
@@ -69,7 +91,7 @@ export async function createOrder(
       custom_message: customMessage,
       is_gift: isGift,
       wishlist_owner_ids: wishlistOwnerIds,
-      owner_id: isGift ? wishlistOwnerIds : user.id
+      owner_id: isGift ? wishlistOwnerIds : userId
     })
     .select()
     .single()
@@ -108,7 +130,7 @@ export async function createOrder(
       await sendGiftNotification(
         order.id,
         wishlistOwnerIds,
-        user.id,
+        userId,
         customerEmail.split('@')[0], // Use email prefix as sender name for now
         customMessage,
         items.map(item => ({
@@ -193,8 +215,10 @@ export async function sendGiftNotification(
   customMessage: string | null,
   items: Array<{ title: string; price: number; image_url: string | null }>
 ) {
-  const supabase = await createSupabaseServerClient()
-  
+  // Service-role client so notifications can be created from webhook/callback
+  // contexts (no user session) without being blocked by RLS.
+  const supabase = createSupabaseServiceClient()
+
   // Get wishlist owner's profile
   const { data: profile, error } = await supabase
     .from('profiles')

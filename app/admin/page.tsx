@@ -6,6 +6,7 @@ import { OrderManagement } from "@/components/dashboard/admin/OrderManagement";
 import { TransactionManagement } from "@/components/dashboard/admin/TransactionManagement";
 import { NotificationManagement } from "@/components/dashboard/admin/NotificationManagement";
 import { PlatformSettings } from "@/components/dashboard/admin/PlatformSettings";
+import { PaymentGatewaySettings } from "@/components/dashboard/admin/PaymentGatewaySettings";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import { Loader2 } from "lucide-react";
@@ -26,6 +27,8 @@ function AdminDashboardContent() {
         return <TransactionManagement />;
       case "notifications":
         return <NotificationManagement />;
+      case "payments":
+        return <PaymentGatewaySettings />;
       case "settings":
         return <PlatformSettings />;
       default:

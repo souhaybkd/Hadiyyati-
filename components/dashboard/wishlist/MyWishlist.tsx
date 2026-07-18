@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -416,16 +416,24 @@ export function MyWishlist() {
     loadData();
   }, []);
 
+  // Initialize the settings form from the profile ONCE. Without this guard the
+  // background auto-refresh / window-focus refresh would overwrite the form and
+  // wipe the user's unsaved edits while they are typing.
+  const formInitialized = useRef(false);
   useEffect(() => {
-    if (profile) {
+    if (profile && !formInitialized.current) {
       setProfileForm({
         username: profile.username || '',
         full_name: profile.full_name || '',
         wishlist_color_palette: profile.wishlist_color_palette || 'default',
         wishlist_description: profile.wishlist_description || ''
       });
+      formInitialized.current = true;
     }
   }, [profile]);
+
+  // Tracks the last time we fetched, so focus-based refreshes can be throttled.
+  const lastRefreshRef = useRef<number>(Date.now());
 
   // Refresh data function
   const refreshData = useCallback(async (showRefreshingState = true) => {
@@ -437,7 +445,7 @@ export function MyWishlist() {
       ]);
       setProfile(profileData);
       setItems(itemsData);
-      console.log('Wishlist refreshed:', itemsData.length, 'items');
+      lastRefreshRef.current = Date.now();
     } catch (error) {
       console.error('Error refreshing wishlist data:', error);
     } finally {
@@ -470,20 +478,10 @@ export function MyWishlist() {
     }
   };
 
-  // Set up automatic refresh every 45 seconds for wishlist
-  useEffect(() => {
-    const interval = setInterval(() => {
-      refreshData(false); // Refresh without showing loading state
-    }, 45000); // 45 seconds
-
-    return () => clearInterval(interval);
-  }, [refreshData]);
-
-  // Listen for storage events (when user navigates back from payment success)
+  // Refresh instantly after a payment completes (signalled from the success page).
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'payment_completed') {
-        console.log('Payment completion detected, refreshing wishlist');
         refreshData();
       }
     };
@@ -492,10 +490,14 @@ export function MyWishlist() {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, [refreshData]);
 
-  // Listen for focus events (when user comes back to the tab)
+  // Refresh when the user returns to the tab, but only if the data is stale
+  // (30s+). This keeps data fresh without polling on a fixed interval.
   useEffect(() => {
+    const STALE_AFTER = 30000; // 30 seconds
     const handleFocus = () => {
-      refreshData(false);
+      if (Date.now() - lastRefreshRef.current > STALE_AFTER) {
+        refreshData(false);
+      }
     };
 
     window.addEventListener('focus', handleFocus);
@@ -654,7 +656,7 @@ export function MyWishlist() {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="flex flex-col items-center gap-4 text-center">
-          <AlertCircle className="h-10 w-10 animate-spin text-red-500" />
+          <AlertCircle className="h-10 w-10 text-red-500" />
           <p className="text-design-text-error font-semibold">{error}</p>
           <Button onClick={loadData} className="mt-4">
             Try Again

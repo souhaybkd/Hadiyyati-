@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { usePathname, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { AuthProvider } from './AuthProvider'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -29,18 +29,13 @@ const navigation = [
 ]
 
 function SidebarNav({ className }: { className?: string }) {
-  const pathname = usePathname();
   const searchParams = useSearchParams();
-  const isDashboard = pathname === '/dashboard';
   const [currentTab, setCurrentTab] = useState('wishlist');
 
   useEffect(() => {
     const tab = searchParams?.get('tab') || 'wishlist';
-    console.log('Current tab from URL:', tab); // Debugging log
     setCurrentTab(tab);
   }, [searchParams]);
-
-  console.log('Rendered with currentTab:', currentTab); // Debugging log
 
   return (
     <nav className={className}>
@@ -50,7 +45,6 @@ function SidebarNav({ className }: { className?: string }) {
             <Link
               href={`/dashboard?tab=${item.tab}`}
               scroll={false}
-              onClick={() => console.log('Navigating to tab:', item.tab)} // Debugging log
               className={`flex items-center gap-3 px-4 py-3 rounded-design-button text-design-body transition-design ${
                 (currentTab === item.tab || (!currentTab && item.tab === 'wishlist'))
                   ? 'bg-design-primary text-white shadow-design-light'

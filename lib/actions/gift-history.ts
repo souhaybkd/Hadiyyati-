@@ -1,6 +1,7 @@
 'use server'
 
 import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { createSupabaseServiceClient } from '@/lib/supabase-service'
 import { revalidatePath } from 'next/cache'
 import type { 
   GiftHistoryItem, 
@@ -58,7 +59,9 @@ export async function getGiftHistory(): Promise<GiftHistoryItem[]> {
       let otherParty: Pick<Profile, 'id' | 'username' | 'full_name' | 'avatar_url'> | undefined
 
       if (otherPartyId) {
-        const { data: profile } = await supabase
+        // The other party is a different user, which RLS no longer lets us read
+        // directly. Use the service client and select only non-sensitive columns.
+        const { data: profile } = await createSupabaseServiceClient()
           .from('profiles')
           .select('id, username, full_name, avatar_url')
           .eq('id', otherPartyId)

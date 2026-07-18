@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Eye, Gift, DollarSign, TrendingUp, RefreshCw } from "lucide-react";
@@ -20,13 +20,16 @@ export function Analytics() {
     const [refreshing, setRefreshing] = useState(false);
     const [selectedPeriod, setSelectedPeriod] = useState<AnalyticsDateFilter['period']>('this_year');
 
+    // Tracks the last time we fetched, so focus-based refreshes can be throttled.
+    const lastRefreshRef = useRef<number>(Date.now());
+
     // Refresh data function
     const refreshData = useCallback(async (showRefreshingState = true) => {
         if (showRefreshingState) setRefreshing(true);
         try {
             const analyticsData = await getGiftAnalytics(selectedPeriod);
             setAnalytics(analyticsData);
-            console.log('Analytics refreshed for period:', selectedPeriod);
+            lastRefreshRef.current = Date.now();
         } catch (error) {
             console.error("Error refreshing analytics:", error);
         } finally {
@@ -40,6 +43,7 @@ export function Analytics() {
             try {
                 const analyticsData = await getGiftAnalytics(selectedPeriod);
                 setAnalytics(analyticsData);
+                lastRefreshRef.current = Date.now();
             } catch (error) {
                 console.error("Error loading analytics:", error);
             } finally {
@@ -50,20 +54,10 @@ export function Analytics() {
         loadAnalytics();
     }, [selectedPeriod]);
 
-    // Set up automatic refresh every 60 seconds for analytics
-    useEffect(() => {
-        const interval = setInterval(() => {
-            refreshData(false); // Refresh without showing loading state
-        }, 60000); // 60 seconds
-
-        return () => clearInterval(interval);
-    }, [refreshData]);
-
-    // Listen for storage events (when user navigates back from payment success)
+    // Refresh instantly after a payment completes (signalled from the success page).
     useEffect(() => {
         const handleStorageChange = (e: StorageEvent) => {
             if (e.key === 'payment_completed') {
-                console.log('Payment completion detected, refreshing analytics');
                 refreshData();
             }
         };
@@ -72,10 +66,14 @@ export function Analytics() {
         return () => window.removeEventListener('storage', handleStorageChange);
     }, [refreshData]);
 
-    // Listen for focus events (when user comes back to the tab)
+    // Refresh when the user returns to the tab, but only if the data is stale
+    // (30s+). This keeps data fresh without polling on a fixed interval.
     useEffect(() => {
+        const STALE_AFTER = 30000; // 30 seconds
         const handleFocus = () => {
-            refreshData(false);
+            if (Date.now() - lastRefreshRef.current > STALE_AFTER) {
+                refreshData(false);
+            }
         };
 
         window.addEventListener('focus', handleFocus);

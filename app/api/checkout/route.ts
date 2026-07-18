@@ -1,20 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { stripe } from '@/lib/stripe'
+import { getEnabledStripeClient } from '@/lib/stripe'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 
 export async function POST(request: NextRequest) {
   try {
     console.log('🔍 Starting checkout process...')
-    
-    // Check environment variables first
-    if (!process.env.STRIPE_SECRET_KEY) {
-      console.error('❌ Missing STRIPE_SECRET_KEY environment variable')
-      return NextResponse.json({ error: 'Stripe configuration error' }, { status: 500 })
-    }
-    
+
     if (!process.env.NEXT_PUBLIC_SITE_URL) {
       console.error('❌ Missing NEXT_PUBLIC_SITE_URL environment variable')
       return NextResponse.json({ error: 'Site URL configuration error' }, { status: 500 })
+    }
+
+    // Build the Stripe client from the admin-managed configuration.
+    // Throws if Stripe is disabled or missing credentials.
+    let stripe
+    try {
+      ;({ stripe } = await getEnabledStripeClient())
+    } catch (configError) {
+      console.error('❌ Stripe unavailable:', configError)
+      return NextResponse.json(
+        { error: 'Stripe payments are currently unavailable.' },
+        { status: 400 }
+      )
     }
 
     // Check Supabase authentication

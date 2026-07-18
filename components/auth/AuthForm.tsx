@@ -131,22 +131,19 @@ export function AuthForm() {
         setUsernameError('')
 
         try {
-            // Check if username exists in profiles table
-            const { data, error } = await supabase
-                .from('profiles')
-                .select('id')
-                .eq('username', usernameToCheck.toLowerCase().trim())
-                .single()
+            // Availability is checked via a SECURITY DEFINER function, since users
+            // can't read other profile rows directly under RLS.
+            const { data: isAvailable, error } = await supabase
+                .rpc('is_username_available', { check_username: usernameToCheck })
 
-            if (error && error.code !== 'PGRST116') {
-                // PGRST116 means no rows found, which is what we want
+            if (error) {
                 console.error('Error checking username:', error)
                 setUsernameError('Unable to check username availability. Please try again.')
                 setIsCheckingUsername(false)
                 return false
             }
 
-            if (data) {
+            if (!isAvailable) {
                 setUsernameError('This username is already taken')
                 setIsCheckingUsername(false)
                 return false
