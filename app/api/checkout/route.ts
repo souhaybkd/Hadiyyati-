@@ -24,22 +24,13 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check Supabase authentication
-    console.log('🔍 Checking user authentication...')
+    // Buyer authentication is OPTIONAL — gifting from a wishlist does not require
+    // an account. If the buyer is signed in we use their account; otherwise they
+    // check out as a guest and provide an email.
+    console.log('🔍 Checking user authentication (optional)...')
     const supabase = await createSupabaseServerClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    
-    if (authError) {
-      console.error('❌ Supabase auth error:', authError)
-      return NextResponse.json({ error: 'Authentication error' }, { status: 401 })
-    }
-    
-    if (!user) {
-      console.error('❌ No authenticated user found')
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-    
-    console.log('✅ User authenticated:', user.id)
+    const { data: { user } } = await supabase.auth.getUser()
+    console.log(user ? `✅ Signed-in buyer: ${user.id}` : 'ℹ️ Guest checkout')
 
     // Parse request body
     console.log('🔍 Parsing request body...')
@@ -51,7 +42,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
     }
 
-    const { items, customMessage, isGift } = requestBody
+    const { items, customMessage, isGift, customerEmail, customerName } = requestBody
+
+    // Determine the buyer's email (account email or guest-provided email).
+    const buyerEmail: string = (user?.email || customerEmail || '').trim()
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(buyerEmail)) {
+      return NextResponse.json(
+        { error: 'A valid email address is required to complete your purchase.' },
+        { status: 400 }
+      )
+    }
+    const buyerName: string = (user?.user_metadata?.full_name || customerName || '').trim()
     console.log('📦 Request data:', { 
       itemsCount: items?.length, 
       hasCustomMessage: !!customMessage, 
@@ -130,7 +131,8 @@ export async function POST(request: NextRequest) {
 
     // Create metadata for the session
     const metadata = {
-      user_id: user.id,
+      user_id: user?.id || '',
+      buyer_name: buyerName,
       custom_message: customMessage || '',
       is_gift: isGift ? 'true' : 'false',
       item_ids: items.map((item: any) => item.id).join(','),
@@ -149,7 +151,7 @@ export async function POST(request: NextRequest) {
       success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/checkout`,
       metadata,
-      customer_email: user.email,
+      customer_email: buyerEmail,
       billing_address_collection: 'required',
       shipping_address_collection: {
         allowed_countries: ['US', 'CA', 'GB', 'AU', 'DE', 'FR', 'ES', 'IT', 'NL', 'BE', 'SE', 'DK', 'NO', 'FI'],

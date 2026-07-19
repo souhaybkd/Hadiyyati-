@@ -42,8 +42,15 @@ export function AuthForm() {
                     return
                 }
                 
-                // Redirect to dashboard on successful login
-                window.location.href = '/dashboard'
+                // Redirect to dashboard on successful login, or back to the
+                // page that sent the user here (e.g. /checkout). Only allow
+                // relative in-app paths to avoid open-redirect issues.
+                const redirectParam = new URLSearchParams(window.location.search).get('redirectTo')
+                const destination =
+                    redirectParam && redirectParam.startsWith('/') && !redirectParam.startsWith('//')
+                        ? redirectParam
+                        : '/dashboard'
+                window.location.href = destination
             } else if (mode === 'register') {
                 // Validate username before signup
                 if (!username.trim()) {

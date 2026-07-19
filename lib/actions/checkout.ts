@@ -33,8 +33,10 @@ export type OrderItem = {
 }
 
 // Create order record after successful payment.
-// `buyerUserId` should be provided when called from a server-to-server context
-// (Stripe webhook / Whish callback) where there is no user session cookie.
+// `buyerUserId` is optional: it's null for guest checkout (buyers do not need an
+// account) and provided when called from a server-to-server context (Stripe
+// webhook / Whish callback) where there is no user session cookie.
+// `buyerName` is the guest's display name, used as the gift sender name.
 export async function createOrder(
   stripeSessionId: string,
   totalAmount: number,
@@ -51,20 +53,24 @@ export async function createOrder(
     quantity: number
     image_url: string | null
   }>,
-  buyerUserId?: string
+  buyerUserId?: string | null,
+  buyerName?: string | null
 ) {
   // Use the service-role client so this works from webhooks/callbacks that have
   // no user session and so RLS never blocks the order insert.
   const supabase = createSupabaseServiceClient()
 
-  let userId = buyerUserId
+  // Buyer may be a guest (no account). If not explicitly provided, fall back to
+  // the current session's user when one exists, but never require it.
+  let userId: string | null = buyerUserId ?? null
   if (!userId) {
-    const authClient = await createSupabaseServerClient()
-    const { data: { user } } = await authClient.auth.getUser()
-    if (!user) {
-      throw new Error('User not authenticated')
+    try {
+      const authClient = await createSupabaseServerClient()
+      const { data: { user } } = await authClient.auth.getUser()
+      userId = user?.id ?? null
+    } catch {
+      userId = null
     }
-    userId = user.id
   }
 
   // Idempotency: if an order already exists for this payment reference, reuse it.
@@ -77,6 +83,10 @@ export async function createOrder(
   if (existingOrder) {
     return existingOrder
   }
+
+  // The order owner is the wishlist owner for gifts. For a guest buying from a
+  // wishlist there is no buyer account, so fall back to the wishlist owner.
+  const ownerId = isGift ? wishlistOwnerIds : (userId ?? wishlistOwnerIds)
 
   // Create order
   const { data: order, error: orderError } = await supabase
@@ -91,7 +101,7 @@ export async function createOrder(
       custom_message: customMessage,
       is_gift: isGift,
       wishlist_owner_ids: wishlistOwnerIds,
-      owner_id: isGift ? wishlistOwnerIds : userId
+      owner_id: ownerId
     })
     .select()
     .single()
@@ -131,7 +141,7 @@ export async function createOrder(
         order.id,
         wishlistOwnerIds,
         userId,
-        customerEmail.split('@')[0], // Use email prefix as sender name for now
+        buyerName || customerEmail.split('@')[0] || 'A friend',
         customMessage,
         items.map(item => ({
           title: item.title,
@@ -210,7 +220,7 @@ export async function getOrderWithItems(orderId: string): Promise<(Order & { ite
 export async function sendGiftNotification(
   orderId: string,
   wishlistOwnerId: string,
-  senderId: string,
+  senderId: string | null,
   senderName: string,
   customMessage: string | null,
   items: Array<{ title: string; price: number; image_url: string | null }>

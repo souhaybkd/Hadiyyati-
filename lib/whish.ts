@@ -159,7 +159,8 @@ export async function finalizeWhishPayment(externalId: number): Promise<Finalize
     payment.is_gift,
     payment.wishlist_owner_ids ?? null,
     orderItems,
-    payment.user_id || undefined
+    payment.user_id ?? null,
+    payment.customer_name ?? null
   )
 
   await supabase

@@ -11,12 +11,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Session ID is required' }, { status: 400 })
     }
 
+    // Guest checkout is allowed, so authentication is optional here.
     const supabase = await createSupabaseServerClient()
     const { data: { user } } = await supabase.auth.getUser()
-    
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
 
     // Retrieve the checkout session from Stripe
     const stripe = await getStripeClient()
@@ -24,8 +21,10 @@ export async function GET(request: NextRequest) {
       expand: ['line_items', 'payment_intent']
     })
 
-    // Verify the session belongs to the current user
-    if (session.metadata?.user_id !== user.id) {
+    // If the session belongs to a registered buyer, only that buyer may view it.
+    // Guest sessions (no user_id) are viewable via the Stripe session id itself.
+    const sessionUserId = session.metadata?.user_id
+    if (sessionUserId && sessionUserId !== user?.id) {
       return NextResponse.json({ error: 'Unauthorized access to this session' }, { status: 403 })
     }
 

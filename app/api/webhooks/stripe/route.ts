@@ -95,7 +95,8 @@ async function handleCheckoutSessionCompleted(session: any) {
       metadata.is_gift === 'true',
       metadata.wishlist_owner_ids || null,
       orderItems,
-      metadata.user_id || undefined
+      metadata.user_id || null,
+      metadata.buyer_name || null
     )
 
     // Send gift notification to wishlist owners if it's a gift
@@ -107,8 +108,8 @@ async function handleCheckoutSessionCompleted(session: any) {
           await sendGiftNotification(
             order.id,
             ownerId.trim(),
-            metadata.user_id || '', // Get sender ID from metadata
-            session.customer_email?.split('@')[0] || 'Gift Sender',
+            metadata.user_id || null, // Sender id (null for guest checkout)
+            metadata.buyer_name || session.customer_email?.split('@')[0] || 'Gift Sender',
             metadata.custom_message || null,
             orderItems.map(item => ({
               title: item.title,

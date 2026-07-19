@@ -19,15 +19,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid externalId' }, { status: 400 })
     }
 
-    // Ensure the requester is the buyer who initiated this payment.
+    // Guest checkout is allowed, so authentication is optional here. The
+    // externalId acts as the payment reference the buyer was redirected with.
     const supabase = await createSupabaseServerClient()
     const {
       data: { user },
     } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
 
     const result = await finalizeWhishPayment(externalId)
 
@@ -37,8 +34,9 @@ export async function GET(request: NextRequest) {
 
     const payment = result.payment
 
-    // Only the buyer may view their own payment details.
-    if (payment?.user_id && payment.user_id !== user.id) {
+    // If this payment belongs to a registered buyer, only that buyer may view
+    // it. Guest payments (no user_id) are viewable via the externalId reference.
+    if (payment?.user_id && payment.user_id !== user?.id) {
       return NextResponse.json({ error: 'Unauthorized access to this payment' }, { status: 403 })
     }
 

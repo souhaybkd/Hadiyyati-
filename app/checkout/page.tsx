@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
 import { useCart } from '@/lib/contexts/CartContext'
 import { getPublicGatewayStatusAction } from '@/lib/actions/payment-gateways'
+import { createSupabaseClient } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -34,12 +35,14 @@ import Link from 'next/link'
 interface CheckoutForm {
   customMessage: string
   isGift: boolean
+  guestEmail: string
+  guestName: string
 }
 
 type PaymentMethod = 'stripe' | 'whish'
 
 function CheckoutContent() {
-  const { cartItems, removeFromCart, clearCart } = useCart()
+  const { cartItems, removeFromCart, isHydrated } = useCart()
   const router = useRouter()
   const searchParams = useSearchParams()
   const [loading, setLoading] = useState(false)
@@ -47,8 +50,27 @@ function CheckoutContent() {
   const [phoneError, setPhoneError] = useState<string | null>(null)
   const [form, setForm] = useState<CheckoutForm>({
     customMessage: '',
-    isGift: false
+    isGift: false,
+    guestEmail: '',
+    guestName: ''
   })
+
+  // Whether a buyer account is signed in. Gifting does NOT require an account —
+  // guests provide their email at checkout instead.
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const supabase = createSupabaseClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        setIsLoggedIn(!!user)
+      } catch {
+        setIsLoggedIn(false)
+      }
+    }
+    checkAuth()
+  }, [])
 
   // Available payment gateways (enabled + configured), loaded from the server.
   const [gateways, setGateways] = useState<{ stripe: boolean; whish: boolean }>({
@@ -169,6 +191,15 @@ function CheckoutContent() {
       return
     }
 
+    // Guests must provide a valid email so they get a receipt/reference.
+    if (isLoggedIn === false) {
+      const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.guestEmail.trim())
+      if (!emailOk) {
+        setError('Please enter a valid email address to continue.')
+        return
+      }
+    }
+
     setLoading(true)
     setError(null)
     setPhoneError(null)
@@ -186,7 +217,9 @@ function CheckoutContent() {
         body: JSON.stringify({
           items: cartItems,
           customMessage: form.customMessage,
-          isGift: form.isGift
+          isGift: form.isGift,
+          customerEmail: isLoggedIn === false ? form.guestEmail.trim() : undefined,
+          customerName: isLoggedIn === false ? form.guestName.trim() : undefined,
         }),
       })
 
@@ -207,6 +240,19 @@ function CheckoutContent() {
     } finally {
       setLoading(false)
     }
+  }
+
+  // Wait for localStorage hydration before treating an empty cart as real —
+  // otherwise a refresh briefly (or permanently, on slow hydration) shows empty.
+  if (!isHydrated) {
+    return (
+      <div className="container mx-auto px-4 py-12">
+        <div className="max-w-2xl mx-auto text-center">
+          <Loader2 className="h-16 w-16 mx-auto mb-6 animate-spin text-primary" />
+          <h1 className="text-2xl font-bold mb-4">Loading checkout...</h1>
+        </div>
+      </div>
+    )
   }
 
   if (cartItems.length === 0) {
@@ -437,6 +483,44 @@ function CheckoutContent() {
                     <span>${total.toFixed(2)}</span>
                   </div>
                 </div>
+
+                {/* Guest details — only shown when not signed in. Gifting does
+                    not require an account. */}
+                {isLoggedIn === false && (
+                  <div className="space-y-3 p-3 border rounded-lg bg-muted/30">
+                    <div className="space-y-1">
+                      <Label htmlFor="guestName">Your Name (optional)</Label>
+                      <Input
+                        id="guestName"
+                        name="guestName"
+                        type="text"
+                        placeholder="Who is this gift from?"
+                        value={form.guestName}
+                        onChange={handleInputChange}
+                        autoComplete="name"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor="guestEmail">
+                        <Mail className="h-4 w-4 inline mr-2" />
+                        Email
+                      </Label>
+                      <Input
+                        id="guestEmail"
+                        name="guestEmail"
+                        type="email"
+                        placeholder="you@example.com"
+                        value={form.guestEmail}
+                        onChange={handleInputChange}
+                        autoComplete="email"
+                        required
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        We'll send your receipt here. No account needed to send a gift.
+                      </p>
+                    </div>
+                  </div>
+                )}
 
                 {/* Payment method selection */}
                 <div className="space-y-2">

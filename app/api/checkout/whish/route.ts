@@ -19,16 +19,13 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Authenticate buyer.
+    // Buyer authentication is OPTIONAL. Gifting from a wishlist does not require
+    // an account — only wishlist owners need one. If the buyer happens to be
+    // signed in we use their account; otherwise they check out as a guest.
     const supabase = await createSupabaseServerClient()
     const {
       data: { user },
-      error: authError,
     } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
 
     // Parse and validate body.
     let requestBody: any
@@ -38,11 +35,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
     }
 
-    const { items, customMessage, isGift } = requestBody
+    const { items, customMessage, isGift, customerEmail, customerName } = requestBody
 
     if (!items || items.length === 0) {
       return NextResponse.json({ error: 'No items provided' }, { status: 400 })
     }
+
+    // Determine the buyer's email: signed-in users use their account email;
+    // guests must supply one so we can send a receipt / reference the payment.
+    const buyerEmail: string = (user?.email || customerEmail || '').trim()
+    const emailIsValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(buyerEmail)
+    if (!emailIsValid) {
+      return NextResponse.json(
+        { error: 'A valid email address is required to complete your purchase.' },
+        { status: 400 }
+      )
+    }
+    const buyerName: string | null = user?.user_metadata?.full_name || customerName || null
 
     for (let i = 0; i < items.length; i++) {
       const item = items[i]
@@ -108,8 +117,9 @@ export async function POST(request: NextRequest) {
     const service = createSupabaseServiceClient()
     const { error: insertError } = await service.from('whish_payments').insert({
       external_id: externalId,
-      user_id: user.id,
-      customer_email: user.email,
+      user_id: user?.id ?? null,
+      customer_email: buyerEmail,
+      customer_name: buyerName,
       amount,
       currency,
       custom_message: customMessage || null,
