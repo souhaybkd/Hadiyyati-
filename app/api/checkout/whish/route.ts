@@ -90,8 +90,12 @@ export async function POST(request: NextRequest) {
       new Set(items.map((item: any) => item.user_id).filter(Boolean))
     ).join(',')
 
-    // Unique numeric reference for this transaction.
-    const externalId = Date.now()
+    // Unique numeric reference for this transaction. Whish requires externalId
+    // to be a numeric (Long) value that is unique per request. Date.now() alone
+    // can collide if two checkouts start in the same millisecond, so we mix in
+    // 3 random digits. Max value (~1.75e15) stays within Number.MAX_SAFE_INTEGER
+    // and well within a 64-bit Long.
+    const externalId = Date.now() * 1000 + Math.floor(Math.random() * 1000)
 
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, '')
     const successRedirectUrl = `${siteUrl}/checkout/success?gateway=whish&externalId=${externalId}`

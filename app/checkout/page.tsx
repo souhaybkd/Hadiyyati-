@@ -83,10 +83,10 @@ function CheckoutContent() {
 
   const availableCount = (gateways.stripe ? 1 : 0) + (gateways.whish ? 1 : 0)
 
-  // Calculate totals
+  // Calculate totals. The amount actually charged by both gateways is the sum
+  // of item prices (no separate tax line), so the displayed total must match.
   const subtotal = cartItems.reduce((total, item) => total + (item.price * item.quantity), 0)
-  const tax = subtotal * 0.08 // 8% tax rate
-  const total = subtotal + tax
+  const total = subtotal
 
   // Get unique wishlist owners for gift recipients
   const wishlistOwners = Array.from(new Set(
@@ -430,10 +430,6 @@ function CheckoutContent() {
                   <div className="flex justify-between">
                     <span>Subtotal</span>
                     <span>${subtotal.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Tax</span>
-                    <span>${tax.toFixed(2)}</span>
                   </div>
                   <Separator />
                   <div className="flex justify-between font-medium text-lg">
