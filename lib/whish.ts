@@ -73,8 +73,53 @@ function isPendingResponse(json: WhishResponse<unknown>): boolean {
   return !json.status && String(json.code) === WHISH_PENDING_CODE
 }
 
-function whishErrorMessage(json: WhishResponse<unknown>, fallback: string): string {
-  return json.dialog?.message || `${fallback} (code: ${json.code ?? 'unknown'})`
+// Whish's `dialog.message` is written for Whish's own app users, so it is
+// misleading in our checkout (an invalid channel/secret, for example, reads as
+// "Please sign in again. You have been signed out."). We branch on `code` and
+// show our own wording, keeping Whish's text for server logs.
+export class WhishError extends Error {
+  readonly code: string
+  readonly details: string
+
+  constructor(code: string, details: string, buyerMessage: string) {
+    super(buyerMessage)
+    this.name = 'WhishError'
+    this.code = code
+    this.details = details
+  }
+}
+
+const WHISH_UNAVAILABLE =
+  'Whish payments are temporarily unavailable. Please try another payment method or try again shortly.'
+
+function buyerMessageForCode(code: string): string {
+  switch (code) {
+    case 'currency.not_supported':
+    case 'invalid_currency':
+      return 'This currency is not supported by Whish.'
+    case 'sales.exceeded_daily_limit':
+    case 'sales.exceeded_monthly_limit':
+      return 'This payment exceeds the current Whish transaction limit. Please try again later.'
+    case 'emoji.not_supported':
+      return 'Please remove emoji or special characters from your message and try again.'
+    default:
+      // Everything else (auth, account, pricing, denomination) is a merchant-side
+      // configuration problem the buyer can do nothing about.
+      return WHISH_UNAVAILABLE
+  }
+}
+
+function whishError(json: WhishResponse<unknown>, context: string): WhishError {
+  const code = json.code ?? 'unknown'
+  const details = `${context} — Whish code "${code}": ${json.dialog?.message ?? 'no message'}`
+
+  if (code.startsWith('auth.')) {
+    console.error(
+      `[WHISH] Credentials rejected (${code}). Check the channel/secret configured for the selected environment in Admin -> Payment Gateways.`
+    )
+  }
+
+  return new WhishError(code, details, buyerMessageForCode(code))
 }
 
 // Whish takes the amount as a JSON string: USD allows 2 decimals with a $1.00
@@ -124,7 +169,7 @@ export async function createWhishPayment(
   })
 
   if (!json.status || !json.data?.collectUrl) {
-    throw new Error(whishErrorMessage(json, 'Whish payment failed'))
+    throw whishError(json, 'Could not create Whish payment')
   }
 
   return { collectUrl: json.data.collectUrl }
@@ -150,7 +195,7 @@ export async function getWhishStatus(
   if (isPendingResponse(json)) return 'unknown'
 
   if (!json.status || !json.data) {
-    throw new Error(whishErrorMessage(json, 'Failed to retrieve Whish payment status'))
+    throw whishError(json, 'Could not retrieve Whish payment status')
   }
 
   switch ((json.data.collectStatus || '').toLowerCase()) {
@@ -206,7 +251,10 @@ export async function finalizeWhishPayment(externalId: number): Promise<Finalize
   try {
     collectStatus = await getWhishStatus(config, externalId, payment.currency)
   } catch (statusError) {
-    console.error('Error checking Whish status:', statusError)
+    console.error(
+      'Error checking Whish status:',
+      statusError instanceof WhishError ? statusError.details : statusError
+    )
     return { status: 'pending', payment }
   }
 

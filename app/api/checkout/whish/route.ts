@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { createSupabaseServiceClient } from '@/lib/supabase-service'
 import { getWhishConfig, isWhishUsable } from '@/lib/payment-config'
-import { createWhishPayment, formatWhishAmount } from '@/lib/whish'
+import { createWhishPayment, formatWhishAmount, WhishError } from '@/lib/whish'
 
 export async function POST(request: NextRequest) {
   try {
@@ -157,17 +157,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to initialize payment' }, { status: 500 })
     }
 
-    // Create the Whish payment and get the collect URL.
-    const { collectUrl } = await createWhishPayment(whishConfig, {
-      amount,
-      currency,
-      invoice: `hadiyyati order ${externalId}`,
-      externalId,
-      successCallbackUrl,
-      failureCallbackUrl,
-      successRedirectUrl,
-      failureRedirectUrl,
-    })
+    // Create the Whish payment and get the collect URL. If Whish refuses, drop
+    // the pending record so it cannot be mistaken for a real payment later.
+    let collectUrl: string
+    try {
+      ;({ collectUrl } = await createWhishPayment(whishConfig, {
+        amount,
+        currency,
+        invoice: `hadiyyati order ${externalId}`,
+        externalId,
+        successCallbackUrl,
+        failureCallbackUrl,
+        successRedirectUrl,
+        failureRedirectUrl,
+      }))
+    } catch (paymentError) {
+      await service.from('whish_payments').delete().eq('external_id', externalId)
+      throw paymentError
+    }
 
     // Store the collect URL for reference.
     await service
@@ -177,6 +184,13 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ url: collectUrl, externalId })
   } catch (error) {
+    // WhishError carries the raw Whish code/message for us, while error.message
+    // holds the wording that is safe to show the buyer.
+    if (error instanceof WhishError) {
+      console.error('❌ Whish checkout error:', error.details)
+      return NextResponse.json({ error: error.message }, { status: 502 })
+    }
+
     console.error('❌ Whish checkout error:', error)
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to create Whish payment' },
