@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { createSupabaseServiceClient } from '@/lib/supabase-service'
 import { getWhishConfig, isWhishUsable } from '@/lib/payment-config'
-import { createWhishPayment } from '@/lib/whish'
+import { createWhishPayment, formatWhishAmount } from '@/lib/whish'
 
 export async function POST(request: NextRequest) {
   try {
@@ -95,18 +95,41 @@ export async function POST(request: NextRequest) {
     )
     const currency = 'USD' as const
 
+    // Reject amounts Whish cannot process before we persist anything.
+    try {
+      formatWhishAmount(amount, currency)
+    } catch (amountError) {
+      return NextResponse.json(
+        { error: amountError instanceof Error ? amountError.message : 'Invalid amount' },
+        { status: 400 }
+      )
+    }
+
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, '')
+
+    // Whish rejects callback/redirect URLs that are not publicly reachable with
+    // HTTP 403, so fail early with an actionable message during local dev.
+    if (/^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\])(:|\/|$)/i.test(siteUrl)) {
+      return NextResponse.json(
+        {
+          error:
+            'Whish requires publicly reachable callback URLs. Set NEXT_PUBLIC_SITE_URL to a public domain (or a tunnel URL) to test Whish locally.',
+        },
+        { status: 400 }
+      )
+    }
+
     const wishlistOwnerIds = Array.from(
       new Set(items.map((item: any) => item.user_id).filter(Boolean))
     ).join(',')
 
-    // Unique numeric reference for this transaction. Whish requires externalId
-    // to be a numeric (Long) value that is unique per request. Date.now() alone
-    // can collide if two checkouts start in the same millisecond, so we mix in
-    // 3 random digits. Max value (~1.75e15) stays within Number.MAX_SAFE_INTEGER
-    // and well within a 64-bit Long.
+    // Unique reference for this transaction. Whish takes externalId as a string
+    // that must be unique per request; we generate a numeric value so it also
+    // fits the bigint column. Date.now() alone can collide if two checkouts
+    // start in the same millisecond, so we mix in 3 random digits. The max
+    // value (~1.75e15) stays within Number.MAX_SAFE_INTEGER.
     const externalId = Date.now() * 1000 + Math.floor(Math.random() * 1000)
 
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, '')
     const successRedirectUrl = `${siteUrl}/checkout/success?gateway=whish&externalId=${externalId}`
     const failureRedirectUrl = `${siteUrl}/checkout?error=payment_failed`
     const successCallbackUrl = `${siteUrl}/api/webhooks/whish?status=success&externalId=${externalId}`

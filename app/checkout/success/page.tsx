@@ -99,6 +99,12 @@ function SuccessContent() {
             return
           }
 
+          if (data.status === 'refunded') {
+            setError('This Whish payment was refunded, so no order was created.')
+            setLoading(false)
+            return
+          }
+
           // pending -> wait then retry
           await new Promise((resolve) => setTimeout(resolve, 2000))
         } catch (err) {

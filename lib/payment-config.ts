@@ -114,9 +114,11 @@ export async function getPublicGatewayStatus(): Promise<PublicGatewayStatus> {
   }
 }
 
-// Whish REST base URL for the configured environment.
+// Whish REST base URL for the configured environment (Partner API v1.4.4).
+// The previous sandbox host (api.sandbox.whish.money) was retired along with
+// its credentials; the new sandbox requires separately issued credentials.
 export function whishBaseUrl(environment: 'sandbox' | 'production'): string {
   return environment === 'production'
     ? 'https://api.whish.money/itel-service/api'
-    : 'https://api.sandbox.whish.money/itel-service/api'
+    : 'https://partner.api.sbx.whish.money/itel-service/api'
 }

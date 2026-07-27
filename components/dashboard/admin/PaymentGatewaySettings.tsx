@@ -345,6 +345,10 @@ export function PaymentGatewaySettings() {
               <option value="sandbox">Sandbox (testing)</option>
               <option value="production">Production (live)</option>
             </select>
+            <p className="text-xs text-muted-foreground">
+              Sandbox and Production use different credentials — enter the set Whish issued
+              for the selected environment.
+            </p>
           </div>
 
           <Button onClick={handleSaveWhish} disabled={savingWhish} className="w-full sm:w-auto">
