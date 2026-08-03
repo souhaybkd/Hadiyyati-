@@ -30,6 +30,7 @@ interface UserProfile {
   avatar_url?: string
   role: string
   status: string
+  kyc_status?: string
   created_at: string
   updated_at: string
 }
@@ -150,6 +151,21 @@ export function UserManagement() {
     }
   }
 
+  const getKycBadge = (kycStatus?: string) => {
+    switch (kycStatus) {
+      case 'approved':
+        return <Badge className="bg-green-100 text-green-800"><CheckCircle className="w-3 h-3 mr-1" />Verified</Badge>
+      case 'pending':
+        return <Badge className="bg-amber-100 text-amber-800">Pending</Badge>
+      case 'declined':
+        return <Badge variant="destructive">Declined</Badge>
+      case 'resubmission_requested':
+        return <Badge className="bg-orange-100 text-orange-800">Resubmit</Badge>
+      default:
+        return <Badge variant="outline">Unverified</Badge>
+    }
+  }
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -257,6 +273,7 @@ export function UserManagement() {
                 <TableHead>Email</TableHead>
                 <TableHead>Role</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>KYC</TableHead>
                 <TableHead>Created</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
@@ -283,6 +300,7 @@ export function UserManagement() {
                   </TableCell>
                   <TableCell>{getRoleBadge(user.role)}</TableCell>
                   <TableCell>{getStatusBadge(user.status)}</TableCell>
+                  <TableCell>{getKycBadge(user.kyc_status)}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2 text-sm text-design-text-muted">
                       <Calendar className="h-4 w-4" />

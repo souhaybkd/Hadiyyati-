@@ -1,3 +1,20 @@
+export type KycStatus =
+  | 'unverified'
+  | 'pending'
+  | 'approved'
+  | 'declined'
+  | 'resubmission_requested'
+
+export type KycVerificationStatus =
+  | 'created'
+  | 'started'
+  | 'submitted'
+  | 'approved'
+  | 'declined'
+  | 'resubmission_requested'
+  | 'expired'
+  | 'abandoned'
+
 export interface Profile {
   id: string
   username: string
@@ -10,6 +27,21 @@ export interface Profile {
   wishlist_color_palette?: string
   wishlist_description?: string
   status?: 'active' | 'suspended'
+  kyc_status?: KycStatus
+  kyc_verified_at?: string | null
+  kyc_session_id?: string | null
+}
+
+export interface KycVerification {
+  id: string
+  user_id: string
+  veriff_session_id: string
+  status: KycVerificationStatus
+  decision_code?: number | null
+  vendor_data: string
+  raw_decision?: Record<string, unknown> | null
+  created_at: string
+  updated_at: string
 }
 
 export interface WishlistItem {

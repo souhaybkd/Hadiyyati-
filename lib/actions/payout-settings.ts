@@ -47,6 +47,23 @@ export async function savePayoutSettings(formData: FormData) {
   }
 
   try {
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('kyc_status')
+      .eq('id', user.id)
+      .single()
+
+    if (profileError) {
+      console.error('Error checking KYC status:', profileError)
+      throw new Error('Failed to verify identity status')
+    }
+
+    if (profile?.kyc_status !== 'approved') {
+      throw new Error(
+        'Identity verification is required before saving payout settings. Please complete KYC first.'
+      )
+    }
+
     const payoutMethod = formData.get('payout_method') as string
     
     // Validate payout method
