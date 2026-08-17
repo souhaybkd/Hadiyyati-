@@ -5,16 +5,22 @@ import type { KycStatus, KycVerificationStatus } from '@/lib/types/database'
 
 const DEFAULT_BASE_URL = 'https://stationapi.veriff.com'
 
+export class VeriffConfigError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'VeriffConfigError'
+  }
+}
+
 export function getVeriffConfig() {
   const apiKey = process.env.VERIFF_API_KEY
   const sharedSecretKey = process.env.VERIFF_SHARED_SECRET_KEY
   const baseUrl = (process.env.VERIFF_BASE_URL || DEFAULT_BASE_URL).replace(/\/$/, '')
 
-  if (!apiKey) {
-    throw new Error('Missing env.VERIFF_API_KEY')
-  }
-  if (!sharedSecretKey) {
-    throw new Error('Missing env.VERIFF_SHARED_SECRET_KEY')
+  if (!apiKey || !sharedSecretKey) {
+    throw new VeriffConfigError(
+      'Veriff is not configured on the server. Add VERIFF_API_KEY and VERIFF_SHARED_SECRET_KEY, then redeploy.'
+    )
   }
 
   return { apiKey, sharedSecretKey, baseUrl }
@@ -64,7 +70,7 @@ export interface VeriffSessionResponse {
 export async function createVeriffSession(
   input: CreateVeriffSessionInput
 ): Promise<VeriffSessionResponse> {
-  const { apiKey, sharedSecretKey, baseUrl } = getVeriffConfig()
+  const { apiKey, baseUrl } = getVeriffConfig()
 
   const person: Record<string, string> = {}
   if (input.firstName) person.firstName = input.firstName
@@ -80,16 +86,13 @@ export async function createVeriffSession(
   }
 
   const payload = JSON.stringify(body)
-  // POST /v1/sessions does not require X-HMAC-SIGNATURE, but signing is harmless
-  // and matches our other authenticated Veriff calls.
-  const signature = signVeriffPayload(payload, sharedSecretKey)
+  // POST /v1/sessions authenticates with X-AUTH-CLIENT only (HMAC is not required).
 
   const res = await fetch(`${baseUrl}/v1/sessions`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'X-AUTH-CLIENT': apiKey,
-      'X-HMAC-SIGNATURE': signature,
     },
     body: payload,
     cache: 'no-store',

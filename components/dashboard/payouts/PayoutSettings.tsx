@@ -98,8 +98,13 @@ export function PayoutSettings() {
         setStartingKyc(true);
         setError(null);
         try {
-            const { url } = await startVeriffSession();
-            window.location.href = url;
+            const result = await startVeriffSession();
+            if (result.error || !result.url) {
+                setError(result.error || 'Failed to start identity verification');
+                setStartingKyc(false);
+                return;
+            }
+            window.location.href = result.url;
         } catch (error) {
             console.error('Error starting Veriff session:', error);
             setError(error instanceof Error ? error.message : 'Failed to start identity verification');
