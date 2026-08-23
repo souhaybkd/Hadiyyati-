@@ -1,10 +1,18 @@
 'use client'
 
 import { Suspense } from 'react'
+import { useParams } from 'next/navigation'
 import { Loader2 } from 'lucide-react'
 import { CheckoutSuccessContent } from '@/components/checkout/CheckoutSuccessContent'
 
-export default function CheckoutSuccessPage() {
+function WhishSuccessContent() {
+  const params = useParams()
+  const externalId = String(params?.externalId || '')
+
+  return <CheckoutSuccessContent gateway="whish" externalId={externalId} />
+}
+
+export default function WhishCheckoutSuccessPage() {
   return (
     <Suspense
       fallback={
@@ -16,7 +24,7 @@ export default function CheckoutSuccessPage() {
         </div>
       }
     >
-      <CheckoutSuccessContent />
+      <WhishSuccessContent />
     </Suspense>
   )
 }

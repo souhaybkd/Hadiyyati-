@@ -130,8 +130,11 @@ export async function POST(request: NextRequest) {
     // value (~1.75e15) stays within Number.MAX_SAFE_INTEGER.
     const externalId = Date.now() * 1000 + Math.floor(Math.random() * 1000)
 
-    const successRedirectUrl = `${siteUrl}/checkout/success?gateway=whish&externalId=${externalId}`
-    const failureRedirectUrl = `${siteUrl}/checkout?error=payment_failed`
+    // Path-based redirects (no query string). Whish's hosted page has been
+    // observed sending both outcomes to the failure URL when the success URL
+    // depends on query params; put the reference in the path instead.
+    const successRedirectUrl = `${siteUrl}/checkout/success/whish/${externalId}`
+    const failureRedirectUrl = `${siteUrl}/checkout/failed`
     const successCallbackUrl = `${siteUrl}/api/webhooks/whish?status=success&externalId=${externalId}`
     const failureCallbackUrl = `${siteUrl}/api/webhooks/whish?status=failure&externalId=${externalId}`
 
