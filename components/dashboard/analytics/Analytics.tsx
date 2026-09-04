@@ -7,6 +7,7 @@ import { Eye, Gift, DollarSign, TrendingUp, RefreshCw } from "lucide-react";
 import { getGiftAnalytics } from "@/lib/actions/gift-history";
 import type { GiftAnalytics, AnalyticsDateFilter } from "@/lib/types/database";
 import { LoadingSkeleton } from "@/components/ui/LoadingSkeleton";
+import { useLanguage } from "@/lib/contexts/LanguageContext";
 
 const dateFilters: AnalyticsDateFilter[] = [
     { period: 'this_year', label: 'This Year' },
@@ -15,6 +16,7 @@ const dateFilters: AnalyticsDateFilter[] = [
 ];
 
 export function Analytics() {
+    const { t } = useLanguage()
     const [analytics, setAnalytics] = useState<GiftAnalytics | null>(null);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -88,23 +90,27 @@ export function Analytics() {
         return (
             <Card>
                 <CardHeader>
-                    <CardTitle>Analytics</CardTitle>
+                    <CardTitle>{t('dash.analyticsTitle')}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <p>No analytics data available at this time.</p>
+                    <p>{t('dash.noAnalytics')}</p>
                 </CardContent>
             </Card>
         );
     }
 
-    const getPeriodLabel = () => {
-        return dateFilters.find(filter => filter.period === selectedPeriod)?.label || 'This Year';
+    const periodLabels: Record<AnalyticsDateFilter['period'], string> = {
+        this_year: t('dash.thisYear'),
+        this_month: t('dash.thisMonth'),
+        last_month: t('dash.lastMonth'),
     };
+
+    const getPeriodLabel = () => periodLabels[selectedPeriod] || t('dash.thisYear');
 
   return (
     <div className="space-y-8">
         <div className="flex justify-between items-center">
-            <h2 className="text-design-h2 font-bold text-design-text-heading">Analytics</h2>
+            <h2 className="text-design-h2 font-bold text-design-text-heading">{t('dash.analyticsTitle')}</h2>
             <div className="flex items-center gap-4">
                 <Button 
                     variant="outline" 
@@ -112,8 +118,8 @@ export function Analytics() {
                     onClick={() => refreshData()}
                     disabled={refreshing}
                 >
-                    <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-                    {refreshing ? 'Refreshing...' : 'Refresh'}
+                    <RefreshCw className={`h-4 w-4 me-2 ${refreshing ? 'animate-spin' : ''}`} />
+                    {refreshing ? t('dash.refreshing') : t('dash.refresh')}
                 </Button>
                 <div className="flex items-center gap-2">
                     {dateFilters.map((filter) => (
@@ -123,7 +129,7 @@ export function Analytics() {
                             size="sm"
                             onClick={() => setSelectedPeriod(filter.period)}
                         >
-                            {filter.label}
+                            {periodLabels[filter.period]}
                         </Button>
                     ))}
                 </div>
@@ -135,7 +141,7 @@ export function Analytics() {
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Wishlist Views</CardTitle>
+                        <CardTitle className="text-sm font-medium">{t('dash.wishlistViews')}</CardTitle>
                         <Eye className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
@@ -148,7 +154,7 @@ export function Analytics() {
 
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Gifts Received</CardTitle>
+                        <CardTitle className="text-sm font-medium">{t('dash.giftsReceived')}</CardTitle>
                         <Gift className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
@@ -161,7 +167,7 @@ export function Analytics() {
 
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Value</CardTitle>
+                        <CardTitle className="text-sm font-medium">{t('dash.totalValue')}</CardTitle>
                         <DollarSign className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
@@ -176,7 +182,7 @@ export function Analytics() {
             {/* Monthly Stats */}
             <Card>
                 <CardHeader>
-                    <CardTitle>Monthly Activity</CardTitle>
+                    <CardTitle>{t('dash.monthlyActivity')}</CardTitle>
                     <CardDescription>Your wishlist and gift activity for {getPeriodLabel().toLowerCase()}</CardDescription>
                 </CardHeader>
                 <CardContent>

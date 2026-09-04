@@ -4,6 +4,7 @@ import React from 'react'
 import { WishlistItem } from "@/lib/actions/wishlist";
 import { WishlistItemCard } from "./WishlistItemCard";
 import { Heart } from "lucide-react";
+import { useLanguage } from '@/lib/contexts/LanguageContext';
 
 type WishlistViewProps = {
   items: WishlistItem[];
@@ -22,6 +23,7 @@ type WishlistViewProps = {
 };
 
 export function WishlistView({ items, palette, isPublicView = false, profile }: WishlistViewProps) {
+  const { t } = useLanguage()
   const publicItems = isPublicView ? items.filter(item => item.is_public) : items;
 
   return (
@@ -41,7 +43,7 @@ export function WishlistView({ items, palette, isPublicView = false, profile }: 
         <div className="text-center py-12">
           <Heart className="h-12 w-12 text-gray-300 mx-auto mb-4" />
           <p className="text-gray-500">
-            This wishlist is currently empty.
+            {t('wishlist.empty')}
           </p>
         </div>
       )}

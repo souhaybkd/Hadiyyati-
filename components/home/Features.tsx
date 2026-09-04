@@ -8,54 +8,35 @@ import {
   ArrowRight,
   PackagePlus,
   CreditCard,
-  Wallet,
   LayoutDashboard,
-  Heart,
   Share2,
-  Smartphone,
-  Globe,
-  Zap
 } from 'lucide-react'
 
+import { useLanguage } from '@/lib/contexts/LanguageContext'
+
 export function Features() {
+  const { t } = useLanguage()
   const mainFeatures = [
     {
       icon: PackagePlus,
-      title: 'Easy Wishlist Creation',
-      description: 'Add items from any website with our browser extension or manually create beautiful wish items.',
-      color: 'text-design-primary',
-      bgColor: 'bg-design-primary/10',
+      title: t('home.features.f1.title'),
+      description: t('home.features.f1.desc'),
     },
     {
       icon: Share2,
-      title: 'Effortless Sharing',
-      description: 'Share your wishlist anywhere with a beautiful, mobile-optimized link that works everywhere.',
-      color: 'text-design-secondary',
-      bgColor: 'bg-design-secondary/10',
+      title: t('home.features.f2.title'),
+      description: t('home.features.f2.desc'),
     },
     {
       icon: CreditCard,
-      title: 'Secure Payments',
-      description: 'Accept payments safely through our integrated payment system with fraud protection.',
-      color: 'text-design-primary',
-      bgColor: 'bg-design-primary/10',
+      title: t('home.features.f3.title'),
+      description: t('home.features.f3.desc'),
     },
     {
       icon: LayoutDashboard,
-      title: 'Smart Dashboard',
-      description: 'Track gifts, manage your wishlist, and see analytics all from your personalized dashboard.',
-      color: 'text-design-secondary',
-      bgColor: 'bg-design-secondary/10',
+      title: t('home.features.f4.title'),
+      description: t('home.features.f4.desc'),
     },
-  ]
-
-  const additionalFeatures = [
-    { icon: Heart, text: 'Favorites & Priority Levels' },
-    { icon: Smartphone, text: 'Mobile-First Design' },
-    { icon: Globe, text: 'Multi-Language Support' },
-    { icon: Zap, text: 'Real-Time Notifications' },
-    { icon: Wallet, text: 'Multiple Payment Options' },
-    { icon: PackagePlus, text: 'Unlimited Items (Pro)' },
   ]
 
   return (
@@ -63,11 +44,10 @@ export function Features() {
       <div className="design-container">
         <div className="text-center mb-16 max-w-3xl mx-auto">
           <h2 className="text-design-h2 font-bold mb-6 text-design-primary">
-            Everything You Need for Perfect Gift-Giving
+            {t('home.features.title')}
           </h2>
           <p className="text-design-primary text-design-body mb-4">
-            From creating beautiful wishlists to receiving meaningful gifts, 
-            our platform provides all the tools you need for seamless gift experiences.
+            {t('home.features.subtitle')}
           </p>
         </div>
 
@@ -99,7 +79,7 @@ export function Features() {
         {/* Demo Section */}
         <div className="text-center">
           <h3 className="text-design-h3 font-semibold mb-6 text-design-primary">
-            See It In Action
+            {t('home.features.demo')}
           </h3>
           <div className="bg-design-gray-100 rounded-design-image aspect-video flex items-center justify-center mb-8 overflow-hidden border border-design-primary/20 shadow-design-card">
             <img 
@@ -112,8 +92,8 @@ export function Features() {
 
             <Button asChild size="lg" className="px-8 py-6 text-lg group shadow-none rounded-full text-white font-semibold hover:opacity-90" style={{ backgroundImage: 'linear-gradient(to right, #D1AB30, #E8C547)' }}>
               <Link href="/auth">
-                Start for Free
-                <ArrowRight className="ml-2 h-4 w-4 transition-design group-hover:translate-x-1" />
+                {t('home.features.cta')}
+                <ArrowRight className="ms-2 h-4 w-4 transition-design group-hover:translate-x-1 rtl:rotate-180" />
               </Link>
             </Button>
           </div>

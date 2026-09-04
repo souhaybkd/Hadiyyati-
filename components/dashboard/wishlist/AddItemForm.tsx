@@ -18,6 +18,7 @@ import { getPlatformFeePercentage, calculateExpectedPayout } from "@/lib/actions
 import { uploadProductImage, validateImageFile } from "@/lib/storage";
 import { createSupabaseClient } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/lib/contexts/LanguageContext";
 
 interface AddItemFormProps {
   item?: WishlistItem;
@@ -26,6 +27,7 @@ interface AddItemFormProps {
 }
 
 export function AddItemForm({ item, onItemAdded, onClose }: AddItemFormProps) {
+  const { t } = useLanguage()
   const [formData, setFormData] = useState({
     title: '',
     product_url: '',
@@ -260,7 +262,7 @@ export function AddItemForm({ item, onItemAdded, onClose }: AddItemFormProps) {
         {/* Form Fields */}
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="title">Item Title *</Label>
+            <Label htmlFor="title">{t('dash.itemTitle')}</Label>
             <Input
               id="title"
               value={formData.title}
@@ -271,7 +273,7 @@ export function AddItemForm({ item, onItemAdded, onClose }: AddItemFormProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="price">Price *</Label>
+            <Label htmlFor="price">{t('dash.price')}</Label>
             <div className="relative">
               <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -292,10 +294,10 @@ export function AddItemForm({ item, onItemAdded, onClose }: AddItemFormProps) {
                   <Info className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
                   <div className="text-sm">
                     <p className="text-green-800 font-medium">
-                      You will receive: <span className="text-lg font-bold">${expectedPayout.toFixed(2)}</span>
+                      {t('dash.youReceive')} <span className="text-lg font-bold">${expectedPayout.toFixed(2)}</span>
                     </p>
                     <p className="text-green-700 text-xs mt-1">
-                      After {platformFeePercentage}% platform fee (${(parseFloat(formData.price || '0') * (platformFeePercentage / 100)).toFixed(2)})
+                      {t('dash.afterFee', { pct: platformFeePercentage, fee: (parseFloat(formData.price || '0') * (platformFeePercentage / 100)).toFixed(2) })}
                     </p>
                   </div>
                 </div>
@@ -304,7 +306,7 @@ export function AddItemForm({ item, onItemAdded, onClose }: AddItemFormProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="product_url">Product Link (Optional)</Label>
+            <Label htmlFor="product_url">{t('dash.productLink')}</Label>
             <div className="relative">
               <ExternalLink className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -319,7 +321,7 @@ export function AddItemForm({ item, onItemAdded, onClose }: AddItemFormProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="image_upload">Product Image (Optional)</Label>
+            <Label htmlFor="image_upload">{t('dash.productImage')}</Label>
             
             {/* Image Preview */}
             {uploadedImage && (
@@ -405,7 +407,7 @@ export function AddItemForm({ item, onItemAdded, onClose }: AddItemFormProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description">Description (Optional)</Label>
+            <Label htmlFor="description">{t('dash.itemDesc')}</Label>
             <Textarea
               id="description"
               value={formData.description}
@@ -421,14 +423,14 @@ export function AddItemForm({ item, onItemAdded, onClose }: AddItemFormProps) {
               checked={formData.is_public}
               onCheckedChange={(checked) => handleChange('is_public', checked)}
             />
-            <Label htmlFor="is_public">Make this item public</Label>
+            <Label htmlFor="is_public">{t('dash.makePublic')}</Label>
           </div>
         </div>
 
         <div className="flex gap-2 pt-4">
           <Button type="submit" className="flex-1" disabled={loading}>
             {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            {item ? 'Update Item' : 'Add to Wishlist'}
+            {item ? t('dash.updateItem') : t('dash.addToWishlist')}
           </Button>
           {!item && (
             <Button 
@@ -444,7 +446,7 @@ export function AddItemForm({ item, onItemAdded, onClose }: AddItemFormProps) {
               })}
               disabled={loading}
             >
-              Clear
+              {t('dash.clear')}
             </Button>
           )}
         </div>

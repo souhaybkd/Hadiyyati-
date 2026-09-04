@@ -2,42 +2,40 @@
 
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { usePathname, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { AuthProvider } from './AuthProvider'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { 
-  Package,
-  Package2,
   Users,
   Settings,
   BarChart3,
   ShoppingCart,
   DollarSign,
   Shield,
-  Gift,
   Menu,
   Bell,
   Database,
   CreditCard
 } from 'lucide-react'
 
+import { LanguageToggle } from '@/components/shared'
+import { useLanguage } from '@/lib/contexts/LanguageContext'
+
 const adminNavigation = [
-  { name: 'Overview', tab: 'overview', icon: BarChart3 },
-  { name: 'Users', tab: 'users', icon: Users },
-  { name: 'Orders', tab: 'orders', icon: ShoppingCart },
-  { name: 'Transactions', tab: 'transactions', icon: DollarSign },
-  { name: 'Notifications', tab: 'notifications', icon: Bell },
-  { name: 'Payment Gateways', tab: 'payments', icon: CreditCard },
-  { name: 'Platform Settings', tab: 'settings', icon: Settings },
+  { key: 'admin.overview', tab: 'overview', icon: BarChart3 },
+  { key: 'admin.users', tab: 'users', icon: Users },
+  { key: 'admin.orders', tab: 'orders', icon: ShoppingCart },
+  { key: 'admin.transactions', tab: 'transactions', icon: DollarSign },
+  { key: 'admin.notifications', tab: 'notifications', icon: Bell },
+  { key: 'admin.payments', tab: 'payments', icon: CreditCard },
+  { key: 'admin.settings', tab: 'settings', icon: Settings },
 ]
 
 function AdminSidebarNav({ className }: { className?: string }) {
-  const pathname = usePathname();
   const searchParams = useSearchParams();
-  const isAdminDashboard = pathname === '/admin';
   const [currentTab, setCurrentTab] = useState('overview');
+  const { t } = useLanguage()
 
   useEffect(() => {
     const tab = searchParams?.get('tab') || 'overview';
@@ -48,7 +46,7 @@ function AdminSidebarNav({ className }: { className?: string }) {
     <nav className={className}>
       <ul className="space-y-2">
         {adminNavigation.map((item) => (
-          <li key={item.name}>
+          <li key={item.tab}>
             <Link
               href={`/admin?tab=${item.tab}`}
               scroll={false}
@@ -59,7 +57,7 @@ function AdminSidebarNav({ className }: { className?: string }) {
               }`}
             >
               <item.icon className="h-4 w-4" />
-              {item.name}
+              {t(item.key)}
             </Link>
           </li>
         ))}
@@ -71,14 +69,24 @@ function AdminSidebarNav({ className }: { className?: string }) {
 export function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
     <AuthProvider>
+      <AdminShell>{children}</AdminShell>
+    </AuthProvider>
+  );
+}
+
+function AdminShell({ children }: { children: React.ReactNode }) {
+  const { t } = useLanguage()
+
+  return (
       <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
-        <div className="hidden border-r bg-design-light border-design-gray-200 md:block md:sticky md:top-0 md:h-screen">
+        <div className="hidden border-e bg-design-light border-design-gray-200 md:block md:sticky md:top-0 md:h-screen">
           <div className="flex h-full flex-col gap-2">
-            <div className="flex h-16 items-center border-b border-design-gray-200 px-4 lg:h-[60px] lg:px-6">
+            <div className="flex h-16 items-center justify-between border-b border-design-gray-200 px-4 lg:h-[60px] lg:px-6">
               <Link href="/" className="flex items-center gap-2 font-semibold text-design-text-heading">
                 <Shield className="h-6 w-6 text-design-primary" />
-                <span className="">Admin Panel</span>
+                <span className="">{t('admin.panel')}</span>
               </Link>
+              <LanguageToggle variant="muted" />
             </div>
             <div className="flex-1 p-4">
               <AdminSidebarNav />
@@ -86,7 +94,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
             <div className="mt-auto p-4">
               <div className="flex items-center gap-2 text-sm text-design-text-muted">
                 <Database className="h-4 w-4" />
-                <span>Platform Management</span>
+                <span>{t('admin.platformMgmt')}</span>
               </div>
             </div>
           </div>
@@ -101,12 +109,12 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
                   className="shrink-0 md:hidden"
                 >
                   <Menu className="h-5 w-5" />
-                  <span className="sr-only">Toggle navigation menu</span>
+                  <span className="sr-only">{t('admin.menu')}</span>
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="flex flex-col">
                 <SheetHeader>
-                  <SheetTitle>Admin Menu</SheetTitle>
+                  <SheetTitle>{t('admin.menu')}</SheetTitle>
                 </SheetHeader>
                 <AdminSidebarNav className="mt-8"/>
               </SheetContent>
@@ -114,15 +122,15 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
             <div className="w-full flex-1 flex items-center justify-center">
               <Link href="/" className="flex items-center gap-2 font-semibold text-design-text-heading">
                 <Shield className="h-6 w-6 text-design-primary" />
-                <span className="text-lg">Admin Panel</span>
+                <span className="text-lg">{t('admin.panel')}</span>
               </Link>
             </div>
+            <LanguageToggle variant="muted" />
           </header>
           <main className="flex flex-1 flex-col gap-6 p-4 lg:gap-8 lg:p-6 bg-white">
             {children}
           </main>
         </div>
       </div>
-    </AuthProvider>
   );
 } 

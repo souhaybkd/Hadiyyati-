@@ -1,5 +1,6 @@
 import { Metadata } from 'next'
 import Link from 'next/link'
+import { TermsLegalNote } from '@/components/shared'
 
 export const metadata: Metadata = {
   title: 'Terms and Conditions - Hadiyyati',
@@ -13,6 +14,7 @@ export default function TermsPage() {
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-4 text-gray-900">TERMS AND CONDITIONS</h1>
           <p className="text-lg text-gray-600">Last Updated: November 4, 2025</p>
+          <TermsLegalNote />
         </div>
         
         <div className="prose prose-lg max-w-none">
@@ -474,9 +476,10 @@ export default function TermsPage() {
             <p className="mb-4 text-gray-700">For questions about these Terms, please contact us at:</p>
             <ul className="list-none mb-4 text-gray-700 space-y-2">
               <li><strong>Hadiyyati Ltd</strong></li>
+              <li>Company Number: 16762322</li>
+              <li>Registered Office: 5, Brayford Square, London, E1 0SG, UNITED KINGDOM</li>
               <li>Email: info@hadiyyati.me</li>
               <li>Website: www.hadiyyati.me</li>
-              <li>Registered Office: 5, Brayford Square, London, E1 0SG, UNITED KINGDOM</li>
             </ul>
           </section>
 

@@ -9,8 +9,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Loader2, Lock } from 'lucide-react'
+import { useLanguage } from '@/lib/contexts/LanguageContext'
 
 function UpdatePasswordFormContent() {
+    const { t } = useLanguage()
     const router = useRouter()
     const searchParams = useSearchParams()
     const supabase = createSupabaseClient()
@@ -36,12 +38,12 @@ function UpdatePasswordFormContent() {
         setMessage('')
 
         if (password !== confirmPassword) {
-            setError("Passwords do not match.")
+            setError(t('auth.passwordsMismatch'))
             return
         }
         
         if (password.length < 6) {
-            setError("Password must be at least 6 characters long.")
+            setError(t('auth.passwordMin'))
             return
         }
 
@@ -52,7 +54,7 @@ function UpdatePasswordFormContent() {
         if (error) {
             setError(error.message)
         } else {
-            setMessage("Your password has been reset successfully. You will be redirected to the dashboard shortly.")
+            setMessage(t('auth.passwordResetOk'))
             setTimeout(() => {
                 router.push(redirectTo)
             }, 3000)
@@ -67,15 +69,15 @@ function UpdatePasswordFormContent() {
                 <div className="mx-auto bg-primary text-primary-content rounded-full h-16 w-16 flex items-center justify-center mb-4">
                     <Lock className="h-8 w-8" />
                 </div>
-                <CardTitle className="text-2xl">Reset Your Password</CardTitle>
+                <CardTitle className="text-2xl">{t('auth.resetPassword')}</CardTitle>
                 <CardDescription>
-                    Enter your new password below.
+                    {t('auth.resetPasswordDesc')}
                 </CardDescription>
             </CardHeader>
             <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="space-y-2">
-                        <Label htmlFor="password">New Password</Label>
+                        <Label htmlFor="password">{t('auth.newPassword')}</Label>
                         <Input
                             id="password"
                             type="password"
@@ -85,7 +87,7 @@ function UpdatePasswordFormContent() {
                         />
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                        <Label htmlFor="confirmPassword">{t('auth.confirmPassword')}</Label>
                         <Input
                             id="confirmPassword"
                             type="password"
@@ -100,7 +102,7 @@ function UpdatePasswordFormContent() {
 
                     <Button type="submit" className="w-full" disabled={loading}>
                         {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Update Password
+                        {t('auth.updatePassword')}
                     </Button>
                 </form>
             </CardContent>

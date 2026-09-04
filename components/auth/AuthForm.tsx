@@ -54,14 +54,14 @@ export function AuthForm() {
             } else if (mode === 'register') {
                 // Validate username before signup
                 if (!username.trim()) {
-                    setError('Username is required')
+                    setError(t('auth.usernameRequired'))
                     setIsLoading(false)
                     return
                 }
 
                 const isUsernameAvailable = await checkUsernameAvailability(username)
                 if (!isUsernameAvailable) {
-                    setError(usernameError || 'Please choose a different username')
+                    setError(usernameError || t('auth.chooseDifferentUsername'))
                     setIsLoading(false)
                     return
                 }
@@ -84,7 +84,7 @@ export function AuthForm() {
                 
                 // Check if email confirmation is required
                 if (data.user && !data.session) {
-                    setSuccess('Please check your email for a confirmation link.')
+                    setSuccess(t('auth.checkEmail'))
                 } else {
                     // Redirect to dashboard on successful signup
                     window.location.href = '/dashboard'
@@ -101,10 +101,10 @@ export function AuthForm() {
                     return
                 }
                 
-                setSuccess('Password reset link sent to your email.')
+                setSuccess(t('auth.resetSent'))
             }
         } catch (error) {
-            setError('Authentication failed. Please try again.')
+            setError(t('auth.failed'))
         } finally {
             setIsLoading(false)
         }
@@ -113,24 +113,24 @@ export function AuthForm() {
     // Check username availability
     const checkUsernameAvailability = async (usernameToCheck: string): Promise<boolean> => {
         if (!usernameToCheck.trim()) {
-            setUsernameError('Username is required')
+            setUsernameError(t('auth.usernameRequired'))
             return false
         }
 
         // Validate username format
         const usernameRegex = /^[a-zA-Z0-9_-]+$/
         if (!usernameRegex.test(usernameToCheck)) {
-            setUsernameError('Username can only contain letters, numbers, underscores, and hyphens')
+            setUsernameError(t('auth.usernameFormat'))
             return false
         }
 
         if (usernameToCheck.length < 3) {
-            setUsernameError('Username must be at least 3 characters')
+            setUsernameError(t('auth.usernameMin'))
             return false
         }
 
         if (usernameToCheck.length > 30) {
-            setUsernameError('Username must be less than 30 characters')
+            setUsernameError(t('auth.usernameMax'))
             return false
         }
 
@@ -145,13 +145,13 @@ export function AuthForm() {
 
             if (error) {
                 console.error('Error checking username:', error)
-                setUsernameError('Unable to check username availability. Please try again.')
+                setUsernameError(t('common.error'))
                 setIsCheckingUsername(false)
                 return false
             }
 
             if (!isAvailable) {
-                setUsernameError('This username is already taken')
+                setUsernameError(t('auth.chooseDifferentUsername'))
                 setIsCheckingUsername(false)
                 return false
             }
@@ -161,7 +161,7 @@ export function AuthForm() {
             return true
         } catch (error) {
             console.error('Error checking username:', error)
-            setUsernameError('Unable to check username availability. Please try again.')
+            setUsernameError(t('common.error'))
             setIsCheckingUsername(false)
             return false
         }
@@ -182,7 +182,7 @@ export function AuthForm() {
 
             return () => clearTimeout(timeoutId)
         } else if (username.trim().length > 0 && username.trim().length < 3) {
-            setUsernameError('Username must be at least 3 characters')
+            setUsernameError(t('auth.usernameMin'))
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [username])
@@ -209,7 +209,7 @@ export function AuthForm() {
             }
             // If successful, user will be redirected, so we don't set loading to false
         } catch (error) {
-            setError('Failed to login with Google. Please try again.')
+            setError(t('auth.failed'))
             setIsLoading(false)
         }
     }
@@ -221,21 +221,21 @@ export function AuthForm() {
                     <div className="mx-auto bg-design-primary/10 text-design-primary rounded-design-card h-16 w-16 flex items-center justify-center mb-6">
                         <Gift className="h-8 w-8" />
                     </div>
-                    <CardTitle className="text-design-h3 text-design-text-heading">Reset Password</CardTitle>
+                    <CardTitle className="text-design-h3 text-design-text-heading">{t('auth.forgotTitle')}</CardTitle>
                     <CardDescription className="text-design-text-muted">
-                        Enter your email address and we'll send you a link to reset your password.
+                        {t('auth.forgotSubtitle')}
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-2">
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div className="space-y-2">
-                            <Label htmlFor="email" className="text-design-text-heading">Email</Label>
+                            <Label htmlFor="email" className="text-design-text-heading">{t('auth.email')}</Label>
                             <Input
                                 id="email"
                                 type="email"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                placeholder="Enter your email"
+                                placeholder={t('auth.emailPh')}
                                 required
                                 className="h-12"
                             />
@@ -256,15 +256,15 @@ export function AuthForm() {
                         )}
 
                         <Button type="submit" className="w-full" disabled={isLoading}>
-                            {isLoading ? 'Sending...' : 'Send Reset Link'}
+                            {isLoading ? t('auth.sending') : t('auth.sendReset')}
                         </Button>
                     </form>
 
                     <div className="text-center mt-6">
                         <p className="text-design-small text-design-text-muted">
-                            Remember your password?
+                            {t('auth.rememberPassword')}
                             <Button variant="link" onClick={() => setMode('login')} className="text-design-primary">
-                                Back to Login
+                                {t('auth.backToLogin')}
                             </Button>
                         </p>
                     </div>
@@ -282,8 +282,8 @@ export function AuthForm() {
                 <CardTitle className="text-design-h3 text-design-text-heading">{mode === 'login' ? t('auth.login') : t('auth.register')}</CardTitle>
                 <CardDescription className="text-design-text-muted">
                     {mode === 'login' 
-                        ? 'Welcome back! Sign in to your account' 
-                        : 'Create your account to get started'
+                        ? t('auth.welcomeBack')
+                        : t('auth.createAccount')
                     }
                 </CardDescription>
             </CardHeader>
@@ -292,20 +292,20 @@ export function AuthForm() {
                     {mode === 'register' && (
                         <>
                             <div className="space-y-2">
-                                <Label htmlFor="name" className="text-design-text-heading">Full Name</Label>
+                                <Label htmlFor="name" className="text-design-text-heading">{t('auth.fullName')}</Label>
                                 <Input
                                     id="name"
                                     type="text"
                                     value={name}
                                     onChange={(e) => setName(e.target.value)}
-                                    placeholder="Enter your full name"
+                                    placeholder={t('auth.fullNamePh')}
                                     required
                                     className="h-12"
                                 />
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="username" className="text-design-text-heading">
-                                    Username *
+                                    {t('auth.username')} *
                                 </Label>
                                 <Input
                                     id="username"
@@ -323,41 +323,41 @@ export function AuthForm() {
                                 {!usernameError && username.trim().length >= 3 && !isCheckingUsername && (
                                     <p className="text-sm text-green-600 flex items-center gap-1">
                                         <CheckCircle className="h-3 w-3" />
-                                        Username available
+                                        {t('auth.usernameAvailable')}
                                     </p>
                                 )}
                                 {isCheckingUsername && (
-                                    <p className="text-sm text-muted-foreground">Checking availability...</p>
+                                    <p className="text-sm text-muted-foreground">{t('auth.checkingUsername')}</p>
                                 )}
                                 <p className="text-xs text-muted-foreground">
-                                    Your wishlist will be at: hadiyyati.me/{username || 'your-username'}
+                                    {t('auth.wishlistAt', { username: username || t('home.hero.yourName') })}
                                 </p>
                             </div>
                         </>
                     )}
 
                     <div className="space-y-2">
-                        <Label htmlFor="email" className="text-design-text-heading">Email</Label>
+                        <Label htmlFor="email" className="text-design-text-heading">{t('auth.email')}</Label>
                         <Input
                             id="email"
                             type="email"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            placeholder="Enter your email"
+                            placeholder={t('auth.emailPh')}
                             required
                             className="h-12"
                         />
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="password" className="text-design-text-heading">Password</Label>
+                        <Label htmlFor="password" className="text-design-text-heading">{t('auth.password')}</Label>
                         <div className="relative">
                             <Input
                                 id="password"
                                 type={showPassword ? 'text' : 'password'}
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                placeholder="Enter your password"
+                                placeholder={t('auth.passwordPh')}
                                 required
                                 className="h-12 pr-10"
                             />
@@ -392,7 +392,7 @@ export function AuthForm() {
                     )}
 
                     <Button type="submit" className="w-full" disabled={isLoading}>
-                        {isLoading ? 'Please wait...' : (mode === 'login' ? 'Sign In' : 'Create Account')}
+                        {isLoading ? t('auth.pleaseWait') : (mode === 'login' ? t('auth.signIn') : t('auth.createAccountBtn'))}
                     </Button>
                 </form>
 
@@ -402,7 +402,7 @@ export function AuthForm() {
                             <span className="w-full border-t border-design-gray-200" />
                         </div>
                         <div className="relative flex justify-center text-design-small">
-                            <span className="bg-white px-2 text-design-text-muted">or</span>
+                            <span className="bg-white px-2 text-design-text-muted">{t('auth.or')}</span>
                         </div>
                     </div>
 
@@ -418,19 +418,19 @@ export function AuthForm() {
                             <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
                             <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
                         </svg>
-                        {isLoading ? 'Connecting...' : 'Continue with Google'}
+                        {isLoading ? t('auth.connecting') : t('auth.google')}
                     </Button>
                 </div>
 
                 <div className="text-center">
                     <p className="text-design-small text-design-text-muted pt-2">
-                        {mode === 'login' ? "Don't have an account? " : "Already have an account? "}
+                        {mode === 'login' ? `${t('auth.noAccount')} ` : `${t('auth.hasAccount')} `}
                         <button 
                            
                             onClick={() => setMode(mode === 'login' ? 'register' : 'login')}
                             className="text-design-primary text-design-small"
                         >
-                            {mode === 'login' ? 'Sign up' : 'Sign in'}
+                            {mode === 'login' ? t('auth.signUp') : t('auth.signIn')}
                         </button>
                     </p>
                 </div>
@@ -438,7 +438,7 @@ export function AuthForm() {
                 {mode === 'login' && (
                     <div className="text-center">
                         <button type="button" onClick={() => setMode('forgot')} className="text-design-primary text-design-small">
-                            Forgot your password?
+                            {t('auth.forgotPassword')}
                         </button>
                         
                     </div>

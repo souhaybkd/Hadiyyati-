@@ -55,6 +55,64 @@ export async function sendEmail({
   }
 }
 
+const CONTACT_TO = process.env.CONTACT_TO_EMAIL || 'info@hadiyyati.me'
+
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+}
+
+export async function sendContactEmail({
+  firstName,
+  lastName,
+  email,
+  subject,
+  message,
+}: {
+  firstName: string
+  lastName: string
+  email: string
+  subject: string
+  message: string
+}) {
+  const name = `${firstName} ${lastName}`.trim()
+  const html = `
+    <div style="font-family: sans-serif; line-height: 1.6; color: #111827;">
+      <h2 style="margin: 0 0 16px;">New contact form message</h2>
+      <p><strong>Name:</strong> ${escapeHtml(name)}</p>
+      <p><strong>Email:</strong> ${escapeHtml(email)}</p>
+      <p><strong>Subject:</strong> ${escapeHtml(subject)}</p>
+      <p><strong>Message:</strong></p>
+      <p style="white-space: pre-wrap;">${escapeHtml(message)}</p>
+    </div>
+  `
+
+  try {
+    const resendInstance = getResend()
+    const result = await resendInstance.emails.send({
+      from: EMAIL_CONFIG.from,
+      to: CONTACT_TO,
+      replyTo: email,
+      subject: `Contact form: ${subject}`,
+      html,
+      text: `Name: ${name}\nEmail: ${email}\nSubject: ${subject}\n\n${message}`,
+    })
+
+    if (result.error) {
+      console.error('❌ Failed to send contact email:', result.error)
+      return { success: false, error: result.error }
+    }
+
+    return { success: true, data: result }
+  } catch (error) {
+    console.error('❌ Failed to send contact email:', error)
+    return { success: false, error }
+  }
+}
+
 // Utility function to validate email addresses
 export function isValidEmail(email: string): boolean {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/

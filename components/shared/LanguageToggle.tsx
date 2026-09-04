@@ -3,39 +3,24 @@
 import React from 'react'
 import { useLanguage } from '@/lib/contexts/LanguageContext'
 import { Button } from '@/components/ui/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { Languages, Check } from 'lucide-react'
 
-export function LanguageToggle() {
-  const { language, setLanguage } = useLanguage()
+export function LanguageToggle({ variant = 'gold' }: { variant?: 'gold' | 'muted' }) {
+  const { language, setLanguage, t } = useLanguage()
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon">
-          <Languages className="h-4 w-4" />
-          <span className="sr-only">Toggle language</span>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => setLanguage('en')}>
-          <div className="flex items-center gap-2">
-            {language === 'en' && <Check className="h-4 w-4" />}
-            <span>English</span>
-          </div>
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setLanguage('ar')}>
-          <div className="flex items-center gap-2">
-            {language === 'ar' && <Check className="h-4 w-4" />}
-            <span>العربية</span>
-          </div>
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <Button
+      type="button"
+      variant="ghost"
+      size="sm"
+      aria-label={t('nav.language')}
+      onClick={() => setLanguage(language === 'en' ? 'ar' : 'en')}
+      className={
+        variant === 'gold'
+          ? 'rounded-full text-white font-semibold hover:bg-white/20 px-3'
+          : 'rounded-full text-design-text-heading font-semibold hover:bg-design-gray-100 px-3'
+      }
+    >
+      {language === 'en' ? 'عربي' : 'EN'}
+    </Button>
   )
-} 
+}

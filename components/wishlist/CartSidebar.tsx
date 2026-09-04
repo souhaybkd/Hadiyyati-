@@ -13,9 +13,11 @@ import {
 import { Separator } from '@/components/ui/separator'
 import Link from 'next/link'
 import { Trash2 } from 'lucide-react'
+import { useLanguage } from '@/lib/contexts/LanguageContext'
 
 export function CartSidebar() {
   const { cartItems, removeFromCart, isCartOpen, closeCart, clearCart } = useCart()
+  const { t } = useLanguage()
 
   const subtotal = cartItems.reduce(
     (acc, item) => acc + (item.price || 0) * item.quantity,
@@ -26,12 +28,12 @@ export function CartSidebar() {
     <Sheet open={isCartOpen} onOpenChange={closeCart}>
       <SheetContent className="flex w-full flex-col pr-0 sm:max-w-lg">
         <SheetHeader className="px-6">
-          <SheetTitle>Gifting Cart</SheetTitle>
+          <SheetTitle>{t('cart.title')}</SheetTitle>
         </SheetHeader>
         <Separator />
         {cartItems.length === 0 ? (
           <div className="flex-1 flex items-center justify-center">
-            <p className="text-muted-foreground">Your cart is empty.</p>
+            <p className="text-muted-foreground">{t('cart.empty')}</p>
           </div>
         ) : (
           <div className="flex-1 overflow-y-auto">
@@ -66,17 +68,17 @@ export function CartSidebar() {
             {cartItems.length > 0 && (
                 <>
                 <div className="flex w-full justify-between text-lg font-semibold">
-                    <span>Subtotal</span>
+                    <span>{t('cart.subtotal')}</span>
                     <span>${subtotal.toFixed(2)}</span>
                 </div>
                 <div className="mt-4 flex flex-col gap-2">
                     <SheetClose asChild>
                         <Button asChild className="w-full">
-                            <Link href="/checkout">Proceed to Checkout</Link>
+                            <Link href="/checkout">{t('cart.checkout')}</Link>
                         </Button>
                     </SheetClose>
                     <Button variant="outline" onClick={clearCart}>
-                      Clear Cart
+                      {t('cart.clear')}
                     </Button>
                 </div>
                 </>

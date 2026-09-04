@@ -8,8 +8,10 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Gift, CheckCircle, AlertCircle, Loader2 } from 'lucide-react'
 import { createSupabaseClient } from '@/lib/supabase'
+import { useLanguage } from '@/lib/contexts/LanguageContext'
 
 export default function SetupUsernamePage() {
+  const { t } = useLanguage()
   const [username, setUsername] = useState('')
   const [usernameError, setUsernameError] = useState('')
   const [isCheckingUsername, setIsCheckingUsername] = useState(false)
@@ -47,24 +49,24 @@ export default function SetupUsernamePage() {
   // Check username availability
   const checkUsernameAvailability = async (usernameToCheck: string): Promise<boolean> => {
     if (!usernameToCheck.trim()) {
-      setUsernameError('Username is required')
+      setUsernameError(t('auth.usernameRequired'))
       return false
     }
 
     // Validate username format
     const usernameRegex = /^[a-zA-Z0-9_-]+$/
     if (!usernameRegex.test(usernameToCheck)) {
-      setUsernameError('Username can only contain letters, numbers, underscores, and hyphens')
+      setUsernameError(t('auth.usernameFormat'))
       return false
     }
 
     if (usernameToCheck.length < 3) {
-      setUsernameError('Username must be at least 3 characters')
+      setUsernameError(t('auth.usernameMin'))
       return false
     }
 
     if (usernameToCheck.length > 30) {
-      setUsernameError('Username must be less than 30 characters')
+      setUsernameError(t('auth.usernameMax'))
       return false
     }
 
@@ -110,7 +112,7 @@ export default function SetupUsernamePage() {
 
       return () => clearTimeout(timeoutId)
     } else if (username.trim().length > 0 && username.trim().length < 3) {
-      setUsernameError('Username must be at least 3 characters')
+      setUsernameError(t('auth.usernameMin'))
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [username])
@@ -212,17 +214,17 @@ export default function SetupUsernamePage() {
             <Gift className="h-8 w-8" />
           </div>
           <CardTitle className="text-design-h3 text-design-text-heading">
-            Choose Your Username
+            {t('auth.chooseUsername')}
           </CardTitle>
           <CardDescription className="text-design-text-muted">
-            Pick a unique username for your wishlist. This will be your public profile URL.
+            {t('auth.chooseUsernameDesc')}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="username" className="text-design-text-heading">
-                Username *
+                {t('auth.username')} *
               </Label>
               <Input
                 id="username"
@@ -247,17 +249,17 @@ export default function SetupUsernamePage() {
               {!usernameError && username.trim().length >= 3 && !isCheckingUsername && (
                 <p className="text-sm text-green-600 flex items-center gap-1">
                   <CheckCircle className="h-3 w-3" />
-                  Username available
+                  {t('auth.usernameAvailable')}
                 </p>
               )}
               {isCheckingUsername && (
                 <p className="text-sm text-muted-foreground flex items-center gap-1">
                   <Loader2 className="h-3 w-3 animate-spin" />
-                  Checking availability...
+                  {t('auth.checkingUsername')}
                 </p>
               )}
               <p className="text-xs text-muted-foreground">
-                Your wishlist will be at: hadiyyati.me/{username || 'your-username'}
+                {t('auth.wishlistAt', { username: username || 'your-username' })}
               </p>
             </div>
 
@@ -272,10 +274,10 @@ export default function SetupUsernamePage() {
               {isLoading ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Setting up...
+                  {t('auth.settingUp')}
                 </>
               ) : (
-                'Continue to Dashboard'
+                t('auth.continueDash')
               )}
             </Button>
           </form>

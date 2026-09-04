@@ -12,15 +12,17 @@ import { getMyKycStatus, startVeriffSession } from "@/lib/actions/veriff";
 import { PayoutSettings as PayoutSettingsType, KycStatus } from "@/lib/types/database";
 import { CheckCircle } from "lucide-react";
 import { useSearchParams } from "next/navigation";
+import { useLanguage } from "@/lib/contexts/LanguageContext";
 
 const PayoutMethods = [
-    { id: "bank", label: "Bank Transfer", fields: [{ name: "iban", label: "IBAN", placeholder: "SA03 8000 0000 6080 1016 7519" }, { name: "accountName", label: "Account Holder Name", placeholder: "John Doe" }] },
-    { id: "western_union", label: "Western Union", fields: [{ name: "fullName", label: "Full Name", placeholder: "John Doe" }, { name: "country", label: "Country", placeholder: "United States" }, { name: "phoneNumber", label: "Phone Number", placeholder: "+1 234 567 890" }] },
-    { id: "taptap", label: "TapTap Send", fields: [{ name: "mobileMoneyNumber", label: "Mobile Money Number", placeholder: "251912345678" }] },
-    { id: "whish", label: "Whish Money", fields: [{ name: "mobileMoneyNumber", label: "Mobile Money Number", placeholder: "251912345678" }] },
+    { id: "bank", labelKey: "dash.payoutBank", fields: [{ name: "iban", label: "IBAN", placeholder: "SA03 8000 0000 6080 1016 7519" }, { name: "accountName", label: "Account Holder Name", placeholder: "John Doe" }] },
+    { id: "western_union", labelKey: "dash.payoutWU", fields: [{ name: "fullName", label: "Full Name", placeholder: "John Doe" }, { name: "country", label: "Country", placeholder: "United States" }, { name: "phoneNumber", label: "Phone Number", placeholder: "+1 234 567 890" }] },
+    { id: "taptap", labelKey: "dash.payoutTap", fields: [{ name: "mobileMoneyNumber", label: "Mobile Money Number", placeholder: "251912345678" }] },
+    { id: "whish", labelKey: "dash.payoutWhish", fields: [{ name: "mobileMoneyNumber", label: "Mobile Money Number", placeholder: "251912345678" }] },
 ]
 
 export function PayoutSettings() {
+    const { t } = useLanguage();
     const searchParams = useSearchParams();
     const [selectedMethod, setSelectedMethod] = useState("bank");
     const [formData, setFormData] = useState<Record<string, string>>({});
@@ -176,9 +178,9 @@ export function PayoutSettings() {
         return (
             <Card>
                 <CardHeader>
-                    <CardTitle>Payout Settings</CardTitle>
+                    <CardTitle>{t('dash.payoutTitle')}</CardTitle>
                     <CardDescription>
-                        Choose your preferred method to receive funds.
+                        {t('dash.payoutDesc')}
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="flex items-center justify-center py-8">
@@ -191,9 +193,9 @@ export function PayoutSettings() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Payout Settings</CardTitle>
+        <CardTitle>{t('dash.payoutTitle')}</CardTitle>
         <CardDescription>
-          Choose your preferred method to receive funds.
+          {t('dash.payoutDesc')}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-8">
@@ -237,11 +239,11 @@ export function PayoutSettings() {
                         : 'text-amber-900'
                   }`}
                 >
-                  {isApproved && 'Identity verified'}
-                  {kycStatus === 'unverified' && 'Identity verification required'}
-                  {kycStatus === 'pending' && 'Verification in progress'}
-                  {kycStatus === 'declined' && 'Verification declined'}
-                  {kycStatus === 'resubmission_requested' && 'Additional information needed'}
+                  {isApproved && t('dash.kycVerified')}
+                  {kycStatus === 'unverified' && t('dash.kycRequired')}
+                  {kycStatus === 'pending' && t('dash.kycPending')}
+                  {kycStatus === 'declined' && t('dash.kycDeclined')}
+                  {kycStatus === 'resubmission_requested' && t('dash.kycResubmit')}
                 </p>
                 <p
                   className={`text-xs mt-1 ${
@@ -322,7 +324,7 @@ export function PayoutSettings() {
                     {PayoutMethods.map(method => (
                         <Label key={method.id} htmlFor={method.id} className="flex items-center space-x-2 border rounded-md p-4 has-[input:checked]:border-primary cursor-pointer">
                             <RadioGroupItem value={method.id} id={method.id} />
-                            <span>{method.label}</span>
+                            <span>{t(method.labelKey)}</span>
                         </Label>
                     ))}
                 </RadioGroup>
@@ -330,7 +332,9 @@ export function PayoutSettings() {
 
             {currentMethod && (
                 <div className="mt-8">
-                    <h3 className="text-lg font-semibold mb-4">Details for {currentMethod.label}</h3>
+                    {currentMethod && (
+                    <h3 className="text-lg font-semibold mb-4">{t(currentMethod.labelKey)}</h3>
+                    )}
                     <div className="grid gap-4">
                         {currentMethod.fields.map(field => (
                             <div key={field.name} className="space-y-2">

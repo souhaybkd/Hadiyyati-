@@ -21,9 +21,10 @@ import {
   } from "@/components/ui/alert-dialog";
 import { logout, deleteAccount } from "@/app/auth/actions";
 import { getUserProfile, updateProfile, type Profile } from "@/lib/actions/wishlist";
-import { cn } from "@/lib/utils";
+import { useLanguage } from "@/lib/contexts/LanguageContext";
 
 export function ProfileSettings() {
+    const { t } = useLanguage()
     const [isLoggingOut, setIsLoggingOut] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const router = useRouter();
@@ -132,31 +133,31 @@ export function ProfileSettings() {
         )}
         <Card>
             <CardHeader>
-                <CardTitle>Public Profile</CardTitle>
-                <CardDescription>This information will be displayed on your public wishlist page.</CardDescription>
+                <CardTitle>{t('dash.publicProfile')}</CardTitle>
+                <CardDescription>{t('dash.publicProfileDesc')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
                 <div className="space-y-2">
-                    <Label htmlFor="username">Username</Label>
+                    <Label htmlFor="username">{t('dash.username')}</Label>
                     <Input id="username" name="username" value={formData.username} onChange={handleInputChange} />
-                    <p className="text-sm text-muted-foreground">Your public wishlist URL will be: /wishlist/{formData.username}</p>
+                    <p className="text-sm text-muted-foreground">{t('dash.wishlistUrl', { username: formData.username })}</p>
                 </div>
                 <div className="space-y-2">
-                    <Label htmlFor="full_name">Full Name</Label>
+                    <Label htmlFor="full_name">{t('dash.fullName')}</Label>
                     <Input id="full_name" name="full_name" value={formData.full_name} onChange={handleInputChange} />
                 </div>
                 
                 <Button onClick={handleSave} disabled={isSaving}>
-                    {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Save Changes
+                    {isSaving && <Loader2 className="me-2 h-4 w-4 animate-spin" />}
+                    {t('dash.saveChanges')}
                 </Button>
             </CardContent>
         </Card>
 
         <Card>
             <CardHeader>
-                <CardTitle>Email Address</CardTitle>
-                <CardDescription>Your registered email address cannot be changed.</CardDescription>
+                <CardTitle>{t('dash.emailAddress')}</CardTitle>
+                <CardDescription>{t('dash.emailLocked')}</CardDescription>
             </CardHeader>
             <CardContent>
                 <p className="font-semibold">{profile?.email}</p>
@@ -167,20 +168,20 @@ export function ProfileSettings() {
         
         <Card>
             <CardHeader>
-                <CardTitle>Change Password</CardTitle>
-                <CardDescription>Update your password here. It's a good idea to use a strong password.</CardDescription>
+                <CardTitle>{t('dash.changePassword')}</CardTitle>
+                <CardDescription>{t('dash.changePasswordDesc')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
                 <Button onClick={() => router.push('/auth/update-password')}>
-                    Set New Password
+                    {t('dash.setPassword')}
                 </Button>
             </CardContent>
         </Card>
 
         <Card className="border-destructive">
             <CardHeader>
-                <CardTitle>Account Actions</CardTitle>
-                <CardDescription>Manage your account and session.</CardDescription>
+                <CardTitle>{t('dash.accountActions')}</CardTitle>
+                <CardDescription>{t('dash.accountActionsDesc')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
                 <Button 
@@ -191,13 +192,13 @@ export function ProfileSettings() {
                 >
                     {isLoggingOut ? (
                         <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Logging out...
+                            <Loader2 className="h-4 w-4 me-2 animate-spin" />
+                            {t('dash.loggingOut')}
                         </>
                     ) : (
                         <>
-                            <LogOut className="h-4 w-4 mr-2" />
-                            Logout
+                            <LogOut className="h-4 w-4 me-2" />
+                            {t('dash.logout')}
                         </>
                     )}
                 </Button>
@@ -206,8 +207,8 @@ export function ProfileSettings() {
 
         <Card className="border-destructive">
             <CardHeader>
-                <CardTitle className="text-destructive">Danger Zone</CardTitle>
-                <CardDescription>This action is permanent and cannot be undone.</CardDescription>
+                <CardTitle className="text-destructive">{t('dash.danger')}</CardTitle>
+                <CardDescription>{t('dash.dangerDesc')}</CardDescription>
             </CardHeader>
             <CardContent>
                 <AlertDialog>
@@ -215,24 +216,23 @@ export function ProfileSettings() {
                         <Button variant="destructive" disabled={isDeleting}>
                             {isDeleting ? (
                                 <>
-                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                    Deleting...
+                                    <Loader2 className="h-4 w-4 me-2 animate-spin" />
+                                    {t('dash.deleting')}
                                 </>
                             ) : (
-                                'Delete Account'
+                                t('dash.deleteAccount')
                             )}
                         </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                         <AlertDialogHeader>
-                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                        <AlertDialogTitle>{t('dash.deleteSure')}</AlertDialogTitle>
                         <AlertDialogDescription>
-                            This action cannot be undone. This will permanently delete your
-                            account and remove your data from our servers.
+                            {t('dash.deleteAccountBody')}
                         </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
-                        <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+                        <AlertDialogCancel disabled={isDeleting}>{t('dash.cancel')}</AlertDialogCancel>
                         <AlertDialogAction
                             onClick={(e) => {
                                 e.preventDefault()
@@ -241,7 +241,7 @@ export function ProfileSettings() {
                             disabled={isDeleting}
                             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                         >
-                            {isDeleting ? 'Deleting...' : 'Delete my account'}
+                            {isDeleting ? t('dash.deleting') : t('dash.deleteMyAccount')}
                         </AlertDialogAction>
                         </AlertDialogFooter>
                     </AlertDialogContent>

@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { CheckCircle, Gift, MessageSquare, Home, Loader2 } from 'lucide-react'
 import Link from 'next/link'
+import { useLanguage } from '@/lib/contexts/LanguageContext'
 
 interface OrderDetails {
   id: string
@@ -39,6 +40,7 @@ export function CheckoutSuccessContent({
   externalId: externalIdProp,
 }: CheckoutSuccessContentProps) {
   const { clearCart } = useCart()
+  const { t } = useLanguage()
   const searchParams = useSearchParams()
   const sessionId = searchParams?.get('session_id')
   const gateway = gatewayProp || searchParams?.get('gateway')
@@ -58,7 +60,7 @@ export function CheckoutSuccessContent({
 
     const fetchWhishOrder = async () => {
       if (!externalId) {
-        setError('No payment reference provided')
+        setError('success.noRef')
         setLoading(false)
         return
       }
@@ -92,13 +94,13 @@ export function CheckoutSuccessContent({
           }
 
           if (data.status === 'failed') {
-            setError('Your Whish payment was not successful.')
+            setError('success.whishFailed')
             setLoading(false)
             return
           }
 
           if (data.status === 'refunded') {
-            setError('This Whish payment was refunded, so no order was created.')
+            setError('success.refunded')
             setLoading(false)
             return
           }
@@ -119,7 +121,7 @@ export function CheckoutSuccessContent({
 
     const fetchStripeOrder = async () => {
       if (!sessionId) {
-        setError('No session ID provided')
+        setError('success.noSession')
         setLoading(false)
         return
       }
@@ -152,9 +154,9 @@ export function CheckoutSuccessContent({
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-2xl mx-auto text-center">
           <Loader2 className="h-16 w-16 mx-auto mb-6 animate-spin text-primary" />
-          <h1 className="text-2xl font-bold mb-4">Processing your order...</h1>
+          <h1 className="text-2xl font-bold mb-4">{t('success.processing')}</h1>
           <p className="text-muted-foreground">
-            Please wait while we confirm your payment.
+            {t('success.wait')}
           </p>
         </div>
       </div>
@@ -168,16 +170,14 @@ export function CheckoutSuccessContent({
           <div className="w-16 h-16 mx-auto mb-6 bg-blue-100 rounded-full flex items-center justify-center">
             <CheckCircle className="h-8 w-8 text-blue-600" />
           </div>
-          <h1 className="text-2xl font-bold mb-4">Payment received</h1>
+          <h1 className="text-2xl font-bold mb-4">{t('success.received')}</h1>
           <p className="text-muted-foreground mb-8">
-            We are still confirming your Whish payment. This usually takes a few
-            seconds. You can close this page — the gift will appear on the
-            wishlist as soon as confirmation finishes.
+            {t('success.receivedBody')}
           </p>
           <Link href="/">
             <Button>
-              <Home className="h-4 w-4 mr-2" />
-              Go to Home
+              <Home className="h-4 w-4 me-2" />
+              {t('success.home')}
             </Button>
           </Link>
         </div>
@@ -192,14 +192,14 @@ export function CheckoutSuccessContent({
           <div className="w-16 h-16 mx-auto mb-6 bg-destructive/10 rounded-full flex items-center justify-center">
             <span className="text-2xl">❌</span>
           </div>
-          <h1 className="text-2xl font-bold mb-4">Something went wrong</h1>
+          <h1 className="text-2xl font-bold mb-4">{t('success.wentWrong')}</h1>
           <p className="text-muted-foreground mb-8">
-            {error || 'Unable to retrieve order details'}
+            {error && error.startsWith('success.') ? t(error) : (error || t('success.unable'))}
           </p>
           <Link href="/">
             <Button>
-              <Home className="h-4 w-4 mr-2" />
-              Go to Home
+              <Home className="h-4 w-4 me-2" />
+              {t('success.home')}
             </Button>
           </Link>
         </div>
@@ -217,17 +217,17 @@ export function CheckoutSuccessContent({
           <div className="w-20 h-20 mx-auto mb-6 bg-green-100 rounded-full flex items-center justify-center">
             <CheckCircle className="h-10 w-10 text-green-600" />
           </div>
-          <h1 className="text-3xl font-bold mb-2">Payment Successful!</h1>
+          <h1 className="text-3xl font-bold mb-2">{t('success.title')}</h1>
           <p className="text-muted-foreground">
-            {isGift ? 'Your gift has been sent!' : 'Thank you for your purchase!'}
+            {isGift ? t('success.giftSent') : t('success.thanks')}
           </p>
         </div>
 
         <div className="grid lg:grid-cols-2 gap-8">
           <Card>
             <CardHeader>
-              <CardTitle>Order Details</CardTitle>
-              <CardDescription>Order #{orderDetails.id.slice(-8)}</CardDescription>
+              <CardTitle>{t('success.orderDetails')}</CardTitle>
+              <CardDescription>{t('success.orderNum', { id: orderDetails.id.slice(-8) })}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-3">
@@ -237,7 +237,7 @@ export function CheckoutSuccessContent({
                       <Gift className="h-5 w-5 text-muted-foreground" />
                       <div>
                         <p className="font-medium">{item.description}</p>
-                        <p className="text-sm text-muted-foreground">Qty: {item.quantity}</p>
+                        <p className="text-sm text-muted-foreground">{t('success.qty', { n: item.quantity })}</p>
                       </div>
                     </div>
                     <span className="font-medium">${(item.amount_total / 100).toFixed(2)}</span>
@@ -248,17 +248,17 @@ export function CheckoutSuccessContent({
               <Separator />
 
               <div className="flex justify-between items-center font-medium text-lg">
-                <span>Total Paid</span>
+                <span>{t('success.totalPaid')}</span>
                 <span>${(orderDetails.amount_total / 100).toFixed(2)}</span>
               </div>
 
               <div className="flex items-center gap-2">
                 <Badge variant="secondary" className="bg-green-100 text-green-800">
-                  {orderDetails.status === 'complete' ? 'Completed' : 'Processing'}
+                  {orderDetails.status === 'complete' ? t('success.completed') : t('success.processingStatus')}
                 </Badge>
                 {isGift && (
                   <Badge variant="outline" className="bg-purple-50 text-purple-700">
-                    Gift
+                    {t('success.gift')}
                   </Badge>
                 )}
               </div>
@@ -269,7 +269,7 @@ export function CheckoutSuccessContent({
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Gift className="h-5 w-5" />
-                {isGift ? 'Gift Information' : 'Purchase Information'}
+                {isGift ? t('success.giftInfo') : t('success.purchaseInfo')}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -279,7 +279,7 @@ export function CheckoutSuccessContent({
                     <MessageSquare className="h-5 w-5 text-muted-foreground mt-0.5" />
                     <div>
                       <p className="text-sm text-muted-foreground mb-1">
-                        {isGift ? 'Gift Message' : 'Personal Note'}
+                        {isGift ? t('success.giftMessage') : t('success.personalNote')}
                       </p>
                       <p className="text-sm">{customMessage}</p>
                     </div>
@@ -290,18 +290,18 @@ export function CheckoutSuccessContent({
               <div className="p-3 bg-blue-50 rounded-lg">
                 <p className="text-sm text-blue-800">
                   {isGift
-                    ? 'The wishlist owner will receive an email notification about this gift along with your message.'
-                    : 'You will receive an email confirmation shortly.'}
+                    ? t('success.ownerNotified')
+                    : t('success.emailSoon')}
                 </p>
               </div>
 
               {isGift && (
                 <div className="p-3 bg-purple-50 rounded-lg">
-                  <h4 className="font-medium text-purple-800 mb-2">What happens next?</h4>
+                  <h4 className="font-medium text-purple-800 mb-2">{t('success.next')}</h4>
                   <div className="space-y-1 text-sm text-purple-700">
-                    <p>• The wishlist owner gets notified about your gift</p>
-                    <p>• They can see your message and coordinate delivery</p>
-                    <p>• Items are marked as purchased on their wishlist</p>
+                    <p>• {t('success.next1')}</p>
+                    <p>• {t('success.next2')}</p>
+                    <p>• {t('success.next3')}</p>
                   </div>
                 </div>
               )}
@@ -312,15 +312,15 @@ export function CheckoutSuccessContent({
         <Card className="mt-8">
           <CardContent className="pt-6">
             <div className="text-center space-y-2">
-              <h3 className="font-semibold">Thank you for using hadiyyati!</h3>
+              <h3 className="font-semibold">{t('success.thanksHadiyyati')}</h3>
               <div className="grid sm:grid-cols-2 gap-4 text-sm text-muted-foreground">
                 <div>
-                  <p>• Email confirmation sent</p>
-                  <p>• {isGift ? 'Gift notification sent to wishlist owner' : 'Order processing begins'}</p>
+                  <p>• {t('success.emailSent')}</p>
+                  <p>• {isGift ? t('success.giftNotif') : t('success.orderBegins')}</p>
                 </div>
                 <div>
-                  <p>• Payment receipt available</p>
-                  <p>• Support available 24/7</p>
+                  <p>• {t('success.receipt')}</p>
+                  <p>• {t('success.support')}</p>
                 </div>
               </div>
             </div>

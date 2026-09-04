@@ -30,8 +30,13 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={bricolage.className} suppressHydrationWarning={true}>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var l=localStorage.getItem('language');if(l==='ar'){document.documentElement.lang='ar';document.documentElement.dir='rtl';}}catch(e){}})();`,
+          }}
+        />
         <LanguageProvider>
           <CartProvider>
             <MainLayout>{children}</MainLayout>

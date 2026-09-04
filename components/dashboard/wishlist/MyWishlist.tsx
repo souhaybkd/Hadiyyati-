@@ -72,6 +72,7 @@ import { DragDropContext, Droppable, Draggable, DropResult, DraggableProvided } 
 import { ProfileImage } from "@/components/shared/ProfileImage";
 import { ProfileImageEditorCompact } from "./ProfileImageEditorCompact";
 import { BackgroundImageEditor } from "./BackgroundImageEditor";
+import { useLanguage } from "@/lib/contexts/LanguageContext";
 
 const colorPalettes = [
     { 
@@ -171,6 +172,7 @@ const WishlistItemEditor = ({
   onTogglePurchased: (id: string, is_purchased: boolean) => void,
   provided: DraggableProvided
 }) => {
+  const { t } = useLanguage()
   const [isDeleting, setIsDeleting] = useState(false);
   const [isTogglingPublic, setIsTogglingPublic] = useState(false);
   const [isTogglingPurchased, setIsTogglingPurchased] = useState(false);
@@ -294,14 +296,14 @@ const WishlistItemEditor = ({
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
-                      <AlertDialogTitle>Delete Item</AlertDialogTitle>
+                      <AlertDialogTitle>{t('dash.deleteItem')}</AlertDialogTitle>
                       <AlertDialogDescription>
-                        Are you sure you want to delete "{item.title}"? This action cannot be undone.
+                        {t('dash.deleteConfirm', { title: item.title })}
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+                      <AlertDialogCancel>{t('dash.cancel')}</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleDelete}>{t('dash.delete')}</AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
@@ -317,12 +319,12 @@ const WishlistItemEditor = ({
               {item.is_purchased && (
                 <Badge variant="secondary" className="text-xs">
                   <Gift className="h-3 w-3 mr-1" />
-                  Purchased
+                  {t('dash.purchasedBadge')}
                 </Badge>
               )}
               {item.is_public && (
                 <Badge variant="outline" className="text-xs">
-                  Public
+                  {t('dash.publicBadge')}
                 </Badge>
               )}
             </div>
@@ -344,7 +346,7 @@ const WishlistPreview = ({
   palette: typeof colorPalettes[0],
   backgroundImageUrl?: string | null
 }) => {
-
+  const { t } = useLanguage()
   const publicItems = (items || []).filter(item => item.is_public);
 
   // Determine which background to use: temporary upload or saved profile background
@@ -378,9 +380,9 @@ const WishlistPreview = ({
             />
           </div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            {profile?.full_name ? `${profile.full_name}'s Wishlist` : 'My Wishlist'}
+            {profile?.full_name ? t('wishlist.title', { name: profile.full_name }) : t('dash.wishlist')}
           </h1>
-          <p className="text-gray-600 text-sm">{profile?.wishlist_description || 'Welcome to my wishlist! 🎁'}</p>
+          <p className="text-gray-600 text-sm">{profile?.wishlist_description || t('wishlist.welcome')}</p>
         </div>
 
         {/* Preview Items */}
@@ -391,6 +393,7 @@ const WishlistPreview = ({
 };
 
 export function MyWishlist() {
+  const { t } = useLanguage()
   const [profile, setProfile] = useState<Profile | null>(null);
   const [items, setItems] = useState<WishlistItem[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
@@ -679,10 +682,10 @@ export function MyWishlist() {
               <div>
                 <CardTitle className="flex items-center gap-2 text-design-h3 text-design-text-heading">
                   <Gift className="h-5 w-5 text-design-primary" />
-                  Wishlist Items ({items?.length || 0})
+                  {t('dash.itemsTitle', { count: items?.length || 0 })}
                 </CardTitle>
                 <CardDescription className="text-design-text-muted">
-                  Add, edit, or remove items from your wishlist.
+                  {t('dash.itemsDesc')}
                 </CardDescription>
               </div>
               <div className="flex gap-2 items-center">
@@ -693,20 +696,20 @@ export function MyWishlist() {
                   disabled={refreshing}
                 >
                   <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-                  {refreshing ? 'Refreshing...' : 'Refresh'}
+                  {refreshing ? t('dash.refreshing') : t('dash.refresh')}
                 </Button>
                 <Sheet open={isAddItemOpen} onOpenChange={setIsAddItemOpen}>
                   <SheetTrigger asChild>
                     <Button onClick={() => setIsAddItemOpen(true)}>
-                      <PlusCircle className="h-4 w-4 mr-2" />
-                      Add Item
+                      <PlusCircle className="h-4 w-4 me-2" />
+                      {t('dash.addItemBtn')}
                     </Button>
                   </SheetTrigger>
                   <SheetContent>
                     <SheetHeader>
-                      <SheetTitle className="text-design-h3 text-design-text-heading">Add New Item</SheetTitle>
+                      <SheetTitle className="text-design-h3 text-design-text-heading">{t('dash.addItem')}</SheetTitle>
                       <SheetDescription className="text-design-text-muted">
-                        Fill in the details of the item you want to add to your wishlist.
+                        {t('dash.addItemDesc')}
                       </SheetDescription>
                     </SheetHeader>
                     <AddItemForm 
@@ -749,7 +752,7 @@ export function MyWishlist() {
             {(items?.length || 0) === 0 && (
                 <div className="text-center py-12 text-design-text-muted">
                     <Gift className="h-12 w-12 mx-auto mb-4 opacity-50 text-design-text-muted" />
-                    <p className="text-design-body">No items yet. Add your first item!</p>
+                    <p className="text-design-body">{t('dash.noItems')}</p>
                 </div>
             )}
           </CardContent>
@@ -760,17 +763,17 @@ export function MyWishlist() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-design-h3 text-design-text-heading">
               <Settings className="h-5 w-5 text-design-primary" />
-              Settings
+              {t('dash.settings')}
             </CardTitle>
             <CardDescription className="text-design-text-muted">
-              Customize your public wishlist page.
+              {t('dash.settingsDesc')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-8">
             {/* Profile Image Section */}
             <div className="space-y-4">
               <div>
-                <Label className="text-design-body font-semibold text-design-text-heading">Profile Image</Label>
+                <Label className="text-design-body font-semibold text-design-text-heading">{t('dash.profileImage')}</Label>
                 <p className="text-design-small text-design-text-muted mt-2">
                   This will be displayed on your public wishlist page
                 </p>
@@ -787,7 +790,7 @@ export function MyWishlist() {
             {/* Background Image Section */}
             <div className="space-y-4">
               <div>
-                <Label className="text-design-body font-semibold text-design-text-heading">Background Image</Label>
+                <Label className="text-design-body font-semibold text-design-text-heading">{t('dash.backgroundImage')}</Label>
                 <p className="text-design-small text-design-text-muted mt-2">
                   This will be displayed as the background of your public wishlist page
                 </p>
@@ -803,7 +806,7 @@ export function MyWishlist() {
            
             <div className="space-y-6">
                 <div className="space-y-2">
-                    <Label htmlFor="full_name" className="text-design-text-heading">Full Name</Label>
+                    <Label htmlFor="full_name" className="text-design-text-heading">{t('dash.fullName')}</Label>
                     <Input
                         id="full_name"
                         name="full_name"
@@ -814,7 +817,7 @@ export function MyWishlist() {
                     />
                 </div>
                 <div className="space-y-2">
-                    <Label htmlFor="username" className="text-design-text-heading">Username</Label>
+                    <Label htmlFor="username" className="text-design-text-heading">{t('dash.username')}</Label>
                     <div className="flex">
                         <span className="inline-flex items-center px-4 rounded-l-design-button border border-r-0 border-design-gray-300 bg-design-gray-100 text-design-text-muted text-design-body">
                         /wishlist/
@@ -830,7 +833,7 @@ export function MyWishlist() {
                     </div>
                 </div>
                 <div className="space-y-2">
-                    <Label htmlFor="wishlist_description" className="text-design-text-heading">Wishlist Description</Label>
+                    <Label htmlFor="wishlist_description" className="text-design-text-heading">{t('dash.wishlistDesc')}</Label>
                     <Textarea
                         id="wishlist_description"
                         name="wishlist_description"
@@ -846,7 +849,7 @@ export function MyWishlist() {
             <Separator />
 
             <div className="space-y-4">
-                <Label className="text-design-text-heading font-semibold">Color Palette</Label>
+                <Label className="text-design-text-heading font-semibold">{t('dash.colorPalette')}</Label>
                 <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3 sm:gap-4">
                     {colorPalettes.map((palette) => (
                         <div key={palette.value} onClick={() => handlePaletteChange(palette.value)} className="cursor-pointer text-center transition-design group">
@@ -867,7 +870,7 @@ export function MyWishlist() {
               ) : (
                 <Save className="h-4 w-4 mr-2" />
               )}
-              {isSavingProfile ? 'Saving...' : 'Save Settings'}
+              {isSavingProfile ? t('dash.refreshing') : t('dash.save')}
             </Button>
             {profileError && (
               <p className="text-design-small text-red-600 mt-2">{profileError}</p>

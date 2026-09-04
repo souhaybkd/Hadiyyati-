@@ -7,34 +7,36 @@ import { usePathname } from 'next/navigation'
 import { useLanguage } from '@/lib/contexts/LanguageContext'
 import { LanguageToggle } from '@/components/shared'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { Menu, X } from 'lucide-react'
 
 export function Navbar() {
   const pathname = usePathname()
-  const { t } = useLanguage()
+  const { t, direction } = useLanguage()
   const [isMenuOpen, setIsMenuOpen] = React.useState(false)
 
   const navigation = [
-    { name: 'Home', href: '/' },
-    { name: 'Dashboard', href: '/dashboard' },
-    { name: 'Contact', href: '/contact' },
+    { key: 'nav.home', href: '/' },
+    { key: 'nav.dashboard', href: '/dashboard' },
+    { key: 'nav.contact', href: '/contact' },
   ]
 
-  const isActive = (href: string) => pathname === href
-
-  const getBorderRadius = (name: string) => {
-    if (name === 'Home') return '50px 0px 0px 50px'
-    if (name === 'Dashboard') return '0'
-    if (name === 'Contact') return '0px 50px 50px 0px'
+  const getBorderRadius = (index: number) => {
+    const isFirst = index === 0
+    const isLast = index === navigation.length - 1
+    if (direction === 'rtl') {
+      if (isFirst) return '0px 50px 50px 0px'
+      if (isLast) return '50px 0px 0px 50px'
+      return '0'
+    }
+    if (isFirst) return '50px 0px 0px 50px'
+    if (isLast) return '0px 50px 50px 0px'
     return '0'
   }
 
   return (
-    <nav className="bg-design-primary sticky top-0 z-50 border-b border-design-primary">
+    <nav className="bg-white sticky top-0 z-50 border-b border-gray-200">
       <div className="design-container">
         <div className="flex items-center justify-between h-16">
-          {/* Logo */}
           <Link href="/" className="flex items-center gap-2 group shrink-0">
             <Image
               src="/assets/img/LOGO.png"
@@ -46,74 +48,64 @@ export function Navbar() {
             />
           </Link>
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-0 gap-3">
-            {navigation.map((item) => (
+          <div className="hidden md:flex items-center gap-3">
+            {navigation.map((item, index) => (
               <Link
-                key={item.name}
+                key={item.href}
                 href={item.href}
                 className="text-sm font-medium transition-design px-4 py-2 text-white font-semibold hover:opacity-90"
                 style={{
                   backgroundImage: 'linear-gradient(to right, #D1AB30, #E8C547)',
-                  borderRadius: getBorderRadius(item.name)
+                  borderRadius: getBorderRadius(index),
                 }}
               >
-                {item.name}
+                {t(item.key)}
               </Link>
             ))}
           </div>
 
-          {/* Desktop Actions */}
-          <div className="hidden md:flex items-center space-x-4 relative z-[9999]">
-            {/* <LanguageToggle /> */}
-
+          <div className="hidden md:flex items-center gap-2 relative z-[9999]">
+            <LanguageToggle variant="muted" />
             <Button asChild size="sm" className="rounded-full shadow-none text-white font-semibold hover:opacity-90" style={{ backgroundImage: 'linear-gradient(to right, #D1AB30, #E8C547)' }}>
-              <Link href="/auth">Get Started</Link>
+              <Link href="/auth">{t('nav.getStarted')}</Link>
             </Button>
           </div>
 
-          {/* Mobile Menu Button */}
           <button
-            className="md:hidden p-2 rounded-design-button text-white hover:bg-white/20 transition-design"
+            className="md:hidden p-2 rounded-design-button text-design-text-heading hover:bg-gray-100 transition-design"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
+            aria-label="Menu"
           >
-            {isMenuOpen ? (
-              <X className="h-6 w-6" />
-            ) : (
-              <Menu className="h-6 w-6" />
-            )}
+            {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>
         </div>
 
-        {/* Mobile Navigation */}
         {isMenuOpen && (
-          <div className="md:hidden py-4 border-t border-white/20">
+          <div className="md:hidden py-4 border-t border-gray-200">
             <div className="flex flex-col space-y-2">
-              {navigation.map((item) => (
+              {navigation.map((item, index) => (
                 <Link
-                  key={item.name}
+                  key={item.href}
                   href={item.href}
                   className="text-base font-medium transition-design px-4 py-2 text-white font-semibold hover:opacity-90"
                   style={{
                     backgroundImage: 'linear-gradient(to right, #D1AB30, #E8C547)',
-                    borderRadius: getBorderRadius(item.name)
+                    borderRadius: getBorderRadius(index),
                   }}
                   onClick={() => setIsMenuOpen(false)}
                 >
-                  {item.name}
+                  {t(item.key)}
                 </Link>
               ))}
-              
-              <div className="pt-4 border-t border-white/20">
-                <div className="flex flex-col space-y-2">
-                  <LanguageToggle />
-                  <Button asChild variant="outline" size="sm" className="w-full">
-                    <Link href="/auth">Login</Link>
-                  </Button>
-                  <Button asChild size="sm" className="w-full">
-                    <Link href="/auth">Sign Up</Link>
-                  </Button>
-                </div>
+
+              <div className="pt-4 border-t border-gray-200 flex flex-col gap-2">
+                <LanguageToggle variant="muted" />
+                <Button asChild variant="outline" size="sm" className="w-full">
+                  <Link href="/auth">{t('nav.login')}</Link>
+                </Button>
+                <Button asChild size="sm" className="w-full">
+                  <Link href="/auth">{t('nav.register')}</Link>
+                </Button>
               </div>
             </div>
           </div>
@@ -121,4 +113,4 @@ export function Navbar() {
       </div>
     </nav>
   )
-} 
+}

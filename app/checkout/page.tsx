@@ -30,6 +30,7 @@ import {
   Wallet,
   CheckCircle
 } from 'lucide-react'
+import { useLanguage } from '@/lib/contexts/LanguageContext'
 import Link from 'next/link'
 
 interface CheckoutForm {
@@ -43,6 +44,7 @@ type PaymentMethod = 'stripe' | 'whish'
 
 function CheckoutContent() {
   const { cartItems, removeFromCart, isHydrated } = useCart()
+  const { t, direction } = useLanguage()
   const router = useRouter()
   const searchParams = useSearchParams()
   const [loading, setLoading] = useState(false)
@@ -83,9 +85,9 @@ function CheckoutContent() {
   // Surface a failed Whish redirect back to the user.
   useEffect(() => {
     if (searchParams?.get('error') === 'payment_failed') {
-      setError('Your payment was not completed. Please try again.')
+      setError(t('checkout.paymentFailed'))
     }
-  }, [searchParams])
+  }, [searchParams, t])
 
   useEffect(() => {
     const loadGateways = async () => {
@@ -161,7 +163,7 @@ function CheckoutContent() {
     // Check for phone numbers if it's the customMessage field
     if (name === 'customMessage') {
       if (containsPhoneNumber(value)) {
-        setPhoneError('Phone numbers are not allowed in gift messages. Please remove any phone numbers and try again.')
+        setPhoneError(t('checkout.phoneNotAllowed'))
       } else {
         setPhoneError(null)
       }
@@ -175,19 +177,19 @@ function CheckoutContent() {
 
   const handleCheckout = async () => {
     if (cartItems.length === 0) {
-      setError('Your cart is empty')
+      setError(t('checkout.cartEmptyError'))
       return
     }
 
     // Validate no phone numbers in gift message
     if (form.isGift && form.customMessage && containsPhoneNumber(form.customMessage)) {
-      setError('Phone numbers are not allowed in gift messages. Please remove any phone numbers and try again.')
-      setPhoneError('Phone numbers are not allowed in gift messages. Please remove any phone numbers and try again.')
+      setError(t('checkout.phoneNotAllowed'))
+      setPhoneError(t('checkout.phoneNotAllowed'))
       return
     }
 
     if (!paymentMethod) {
-      setError('No payment method is available. Please contact support.')
+      setError(t('checkout.noMethod'))
       return
     }
 
@@ -195,7 +197,7 @@ function CheckoutContent() {
     if (isLoggedIn === false) {
       const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.guestEmail.trim())
       if (!emailOk) {
-        setError('Please enter a valid email address to continue.')
+        setError(t('checkout.validEmail'))
         return
       }
     }
@@ -236,7 +238,7 @@ function CheckoutContent() {
         throw new Error('Payment provider did not return a redirect URL')
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred')
+      setError(err instanceof Error ? err.message : t('common.error'))
     } finally {
       setLoading(false)
     }
@@ -249,7 +251,7 @@ function CheckoutContent() {
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-2xl mx-auto text-center">
           <Loader2 className="h-16 w-16 mx-auto mb-6 animate-spin text-primary" />
-          <h1 className="text-2xl font-bold mb-4">Loading checkout...</h1>
+          <h1 className="text-2xl font-bold mb-4">{t('checkout.loading')}</h1>
         </div>
       </div>
     )
@@ -260,14 +262,14 @@ function CheckoutContent() {
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-2xl mx-auto text-center">
           <ShoppingCart className="h-16 w-16 mx-auto mb-6 text-muted-foreground" />
-          <h1 className="text-3xl font-bold mb-4">Your Cart is Empty</h1>
+          <h1 className="text-3xl font-bold mb-4">{t('checkout.emptyTitle')}</h1>
           <p className="text-muted-foreground mb-8">
-            Add some items to your cart to continue with checkout.
+            {t('checkout.emptyBody')}
           </p>
           <Link href="/">
             <Button>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Continue Shopping
+              <ArrowLeft className={`h-4 w-4 me-2 ${direction === 'rtl' ? 'rotate-180' : ''}`} />
+              {t('checkout.continueShopping')}
             </Button>
           </Link>
         </div>
@@ -281,12 +283,12 @@ function CheckoutContent() {
         {/* Header */}
         <div className="flex flex-col items-start gap-4 mb-8">
           <Link href="/" className="flex items-center gap-2 text-muted-foreground hover:text-foreground">
-            <ArrowLeft className="h-4 w-4" />
-            Back to Home
+            <ArrowLeft className={`h-4 w-4 ${direction === 'rtl' ? 'rotate-180' : ''}`} />
+            {t('checkout.backHome')}
           </Link>
           <div className="flex-1">
-            <h1 className="text-3xl font-bold">Checkout</h1>
-            <p className="text-muted-foreground">Complete your gift purchase</p>
+            <h1 className="text-3xl font-bold">{t('checkout.title')}</h1>
+            <p className="text-muted-foreground">{t('checkout.subtitle')}</p>
           </div>
         </div>
 
@@ -300,10 +302,10 @@ function CheckoutContent() {
                 </div>
                 <div>
                   <h2 className="text-xl font-semibold text-primary">
-                    You're gifting to:
+                    {t('checkout.giftingTo')}
                   </h2>
                   <p className="text-sm text-muted-foreground">
-                    These items will be sent as gifts
+                    {t('checkout.giftsSent')}
                   </p>
                 </div>
               </div>
@@ -327,7 +329,7 @@ function CheckoutContent() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <ShoppingCart className="h-5 w-5" />
-                  Your Cart ({cartItems.length} {cartItems.length === 1 ? 'item' : 'items'})
+                  {t('checkout.yourCart')} ({cartItems.length} {cartItems.length === 1 ? t('wishlist.item') : t('wishlist.items')})
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -349,7 +351,7 @@ function CheckoutContent() {
                       {item.wishlist_owner_name && (
                         <p className="text-sm text-primary font-medium mb-1">
                           <Gift className="h-3 w-3 inline mr-1" />
-                          Gift for {item.wishlist_owner_name}
+                          {t('checkout.giftFor', { name: item.wishlist_owner_name })}
                         </p>
                       )}
                       {item.description && (
@@ -359,7 +361,7 @@ function CheckoutContent() {
                       )}
                       <div className="flex items-center gap-2 mt-2">
                         <span className="font-medium">${item.price.toFixed(2)}</span>
-                        <Badge variant="secondary">Qty: {item.quantity}</Badge>
+                        <Badge variant="secondary">{t('checkout.qty')}: {item.quantity}</Badge>
                       </div>
                     </div>
                     <Button
@@ -380,10 +382,10 @@ function CheckoutContent() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Gift className="h-5 w-5" />
-                  Gift Message
+                  {t('checkout.giftMessage')}
                 </CardTitle>
                 <CardDescription>
-                  Add a personal message for the wishlist owner
+                  {t('checkout.giftMessageDesc')}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -396,7 +398,7 @@ function CheckoutContent() {
                     onChange={handleInputChange}
                     className="rounded border-gray-300"
                   />
-                  <Label htmlFor="isGift">Include a gift message</Label>
+                  <Label htmlFor="isGift">{t('checkout.includeGiftMessage')}</Label>
                 </div>
 
                 {form.isGift && (
@@ -404,14 +406,14 @@ function CheckoutContent() {
                     <div className="space-y-2">
                       <Label htmlFor="customMessage">
                         <MessageSquare className="h-4 w-4 inline mr-2" />
-                        Your Message
+                        {t('checkout.yourMessage')}
                       </Label>
                       <Textarea
                         id="customMessage"
                         name="customMessage"
                         value={form.customMessage}
                         onChange={handleInputChange}
-                        placeholder="Write a heartfelt message for the wishlist owner..."
+                        placeholder={t('checkout.messagePh')}
                         rows={4}
                         maxLength={500}
                         className={phoneError ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}
@@ -423,12 +425,12 @@ function CheckoutContent() {
                         </div>
                       )}
                       <p className="text-xs text-muted-foreground">
-                        {form.customMessage.length}/500 characters
+                        {t('checkout.chars', { n: form.customMessage.length })}
                       </p>
                     </div>
                     <div className="p-3 bg-blue-50 rounded-lg">
                       <p className="text-sm text-blue-800">
-                        The wishlist owner will receive your message along with the gift notification.
+                        {t('checkout.messageNotify')}
                       </p>
                     </div>
                   </div>
@@ -438,14 +440,14 @@ function CheckoutContent() {
                   <div className="space-y-2">
                     <Label htmlFor="customMessage">
                       <MessageSquare className="h-4 w-4 inline mr-2" />
-                      Personal Note (Optional)
+                      {t('checkout.personalNote')}
                     </Label>
                     <Textarea
                       id="customMessage"
                       name="customMessage"
                       value={form.customMessage}
                       onChange={handleInputChange}
-                      placeholder="Add a personal note to your purchase..."
+                      placeholder={t('checkout.personalNotePh')}
                       rows={3}
                       maxLength={500}
                     />
@@ -460,13 +462,13 @@ function CheckoutContent() {
             <Card>
               <CardHeader>
                 <CardTitle>
-                  {wishlistOwners.length > 0 ? 'Gift Order Summary' : 'Order Summary'}
+                  {wishlistOwners.length > 0 ? t('checkout.giftSummary') : t('checkout.orderSummary')}
                 </CardTitle>
                 {wishlistOwners.length > 0 && (
                   <CardDescription>
                     {wishlistOwners.length === 1 
-                      ? `Gifting to ${wishlistOwners[0]}`
-                      : `Gifting to ${wishlistOwners.length} people`
+                      ? t('checkout.giftingToOne', { name: wishlistOwners[0] ?? '' })
+                      : t('checkout.giftingToMany', { count: wishlistOwners.length })
                     }
                   </CardDescription>
                 )}
@@ -474,12 +476,12 @@ function CheckoutContent() {
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <div className="flex justify-between">
-                    <span>Subtotal</span>
+                    <span>{t('cart.subtotal')}</span>
                     <span>${subtotal.toFixed(2)}</span>
                   </div>
                   <Separator />
                   <div className="flex justify-between font-medium text-lg">
-                    <span>Total</span>
+                    <span>{t('checkout.total')}</span>
                     <span>${total.toFixed(2)}</span>
                   </div>
                 </div>
@@ -489,12 +491,12 @@ function CheckoutContent() {
                 {isLoggedIn === false && (
                   <div className="space-y-3 p-3 border rounded-lg bg-muted/30">
                     <div className="space-y-1">
-                      <Label htmlFor="guestName">Your Name (optional)</Label>
+                      <Label htmlFor="guestName">{t('checkout.yourName')}</Label>
                       <Input
                         id="guestName"
                         name="guestName"
                         type="text"
-                        placeholder="Who is this gift from?"
+                        placeholder={t('checkout.yourNamePh')}
                         value={form.guestName}
                         onChange={handleInputChange}
                         autoComplete="name"
@@ -503,7 +505,7 @@ function CheckoutContent() {
                     <div className="space-y-1">
                       <Label htmlFor="guestEmail">
                         <Mail className="h-4 w-4 inline mr-2" />
-                        Email
+                        {t('checkout.email')}
                       </Label>
                       <Input
                         id="guestEmail"
@@ -516,7 +518,7 @@ function CheckoutContent() {
                         required
                       />
                       <p className="text-xs text-muted-foreground">
-                        We'll send your receipt here. No account needed to send a gift.
+                        {t('checkout.emailHint')}
                       </p>
                     </div>
                   </div>
@@ -524,16 +526,16 @@ function CheckoutContent() {
 
                 {/* Payment method selection */}
                 <div className="space-y-2">
-                  <Label>Payment Method</Label>
+                  <Label>{t('checkout.paymentMethod')}</Label>
                   {gatewaysLoading ? (
                     <div className="flex items-center gap-2 p-3 text-sm text-muted-foreground border rounded-lg">
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      Loading payment options...
+                      {t('checkout.loadingPayments')}
                     </div>
                   ) : availableCount === 0 ? (
                     <div className="flex items-center gap-2 p-3 text-sm text-destructive bg-destructive/10 rounded-md">
                       <AlertCircle className="h-4 w-4 flex-shrink-0" />
-                      No payment methods are currently available. Please check back later.
+                      {t('checkout.noPayments')}
                     </div>
                   ) : (
                     <div className="space-y-2">
@@ -542,8 +544,8 @@ function CheckoutContent() {
                           selected={paymentMethod === 'stripe'}
                           onSelect={() => setPaymentMethod('stripe')}
                           icon={<CreditCard className="h-5 w-5" />}
-                          title="Credit / Debit Card"
-                          description="Pay securely with Stripe"
+                          title={t('checkout.card')}
+                          description={t('checkout.cardDesc')}
                         />
                       )}
                       {gateways.whish && (
@@ -551,8 +553,8 @@ function CheckoutContent() {
                           selected={paymentMethod === 'whish'}
                           onSelect={() => setPaymentMethod('whish')}
                           icon={<Wallet className="h-5 w-5" />}
-                          title="Whish Pay"
-                          description="Pay with your Whish balance"
+                          title={t('checkout.whish')}
+                          description={t('checkout.whishDesc')}
                         />
                       )}
                     </div>
@@ -573,13 +575,13 @@ function CheckoutContent() {
                 >
                   {loading ? (
                     <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Processing...
+                      <Loader2 className="h-4 w-4 me-2 animate-spin" />
+                      {t('checkout.processing')}
                     </>
                   ) : (
                     <>
-                      <CreditCard className="h-4 w-4 mr-2" />
-                      {wishlistOwners.length > 0 ? 'Send Gift' : 'Proceed to Payment'}
+                      <CreditCard className="h-4 w-4 me-2" />
+                      {wishlistOwners.length > 0 ? t('checkout.sendGift') : t('checkout.proceed')}
                     </>
                   )}
                 </Button>
@@ -587,8 +589,8 @@ function CheckoutContent() {
                 <div className="text-center">
                   <p className="text-xs text-muted-foreground">
                     {paymentMethod === 'whish'
-                      ? 'Secure checkout powered by Whish Pay'
-                      : 'Secure checkout powered by Stripe'}
+                      ? t('checkout.poweredWhish')
+                      : t('checkout.poweredStripe')}
                   </p>
                 </div>
               </CardContent>
@@ -599,7 +601,7 @@ function CheckoutContent() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Heart className="h-5 w-5" />
-                  {wishlistOwners.length > 0 ? 'How gifting works' : 'How it works'}
+                  {wishlistOwners.length > 0 ? t('checkout.howGifting') : t('checkout.howItWorks')}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3 text-sm text-muted-foreground">
@@ -609,19 +611,21 @@ function CheckoutContent() {
                       <div className="w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
                         <span className="text-xs font-medium text-primary">1</span>
                       </div>
-                      <p>You purchase these items as gifts for {wishlistOwners.length === 1 ? wishlistOwners[0] : `${wishlistOwners.length} people`}</p>
+                      <p>{wishlistOwners.length === 1
+                        ? t('checkout.howGift1', { name: wishlistOwners[0] ?? '' })
+                        : t('checkout.howGift1Many', { count: wishlistOwners.length })}</p>
                     </div>
                     <div className="flex items-start gap-3">
                       <div className="w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
                         <span className="text-xs font-medium text-primary">2</span>
                       </div>
-                      <p>{wishlistOwners.length === 1 ? 'They get' : 'They each get'} notified about your thoughtful gift</p>
+                      <p>{wishlistOwners.length === 1 ? t('checkout.howGift2') : t('checkout.howGift2Each')}</p>
                     </div>
                     <div className="flex items-start gap-3">
                       <div className="w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
                         <span className="text-xs font-medium text-primary">3</span>
                       </div>
-                      <p>{wishlistOwners.length === 1 ? 'They receive' : 'They each receive'} your personal message and can coordinate delivery</p>
+                      <p>{wishlistOwners.length === 1 ? t('checkout.howGift3') : t('checkout.howGift3Each')}</p>
                     </div>
                   </>
                 ) : (
@@ -630,19 +634,19 @@ function CheckoutContent() {
                       <div className="w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
                         <span className="text-xs font-medium text-primary">1</span>
                       </div>
-                      <p>You purchase items from someone's wishlist</p>
+                      <p>{t('checkout.howBuy1')}</p>
                     </div>
                     <div className="flex items-start gap-3">
                       <div className="w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
                         <span className="text-xs font-medium text-primary">2</span>
                       </div>
-                      <p>The wishlist owner gets notified about your gift</p>
+                      <p>{t('checkout.howBuy2')}</p>
                     </div>
                     <div className="flex items-start gap-3">
                       <div className="w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
                         <span className="text-xs font-medium text-primary">3</span>
                       </div>
-                      <p>They receive your message</p>
+                      <p>{t('checkout.howBuy3')}</p>
                     </div>
                   </>
                 )}
@@ -674,7 +678,7 @@ function PaymentOption({
     <button
       type="button"
       onClick={onSelect}
-      className={`w-full flex items-center gap-3 p-3 border rounded-lg text-left transition-colors ${
+      className={`w-full flex items-center gap-3 p-3 border rounded-lg text-start transition-colors ${
         selected ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'border-input hover:bg-muted/50'
       }`}
     >
@@ -690,18 +694,21 @@ function PaymentOption({
   )
 }
 
+function CheckoutFallback() {
+  const { t } = useLanguage()
+  return (
+    <div className="container mx-auto px-4 py-12">
+      <div className="max-w-2xl mx-auto text-center">
+        <Loader2 className="h-16 w-16 mx-auto mb-6 animate-spin text-primary" />
+        <h1 className="text-2xl font-bold mb-4">{t('checkout.loading')}</h1>
+      </div>
+    </div>
+  )
+}
+
 export default function CheckoutPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="container mx-auto px-4 py-12">
-          <div className="max-w-2xl mx-auto text-center">
-            <Loader2 className="h-16 w-16 mx-auto mb-6 animate-spin text-primary" />
-            <h1 className="text-2xl font-bold mb-4">Loading checkout...</h1>
-          </div>
-        </div>
-      }
-    >
+    <Suspense fallback={<CheckoutFallback />}>
       <CheckoutContent />
     </Suspense>
   )

@@ -61,12 +61,14 @@ import {
   AlertCircle,
   RefreshCw
 } from 'lucide-react'
+import { useLanguage } from '@/lib/contexts/LanguageContext'
 
 interface GiftHistoryProps {
   initialData?: GiftHistoryItem[]
 }
 
 export function GiftHistory({ initialData }: GiftHistoryProps) {
+  const { t } = useLanguage()
   const [giftHistory, setGiftHistory] = useState<GiftHistoryItem[]>(initialData || [])
   const [statistics, setStatistics] = useState<GiftStatistics | null>(null)
   const [loading, setLoading] = useState(!initialData)
@@ -210,15 +212,15 @@ export function GiftHistory({ initialData }: GiftHistoryProps) {
     <div className="space-y-6">
       {/* Header with Statistics and Refresh */}
       <div className="flex justify-between items-center">
-        <h2 className="text-design-h2 font-bold text-design-text-heading">Gift History</h2>
+        <h2 className="text-design-h2 font-bold text-design-text-heading">{t('dash.historyTitle')}</h2>
         <Button 
           variant="outline" 
           size="sm" 
           onClick={() => refreshData()}
           disabled={refreshing}
         >
-          <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-          {refreshing ? 'Refreshing...' : 'Refresh'}
+          <RefreshCw className={`h-4 w-4 me-2 ${refreshing ? 'animate-spin' : ''}`} />
+          {refreshing ? t('dash.refreshing') : t('dash.refresh')}
         </Button>
       </div>
 
@@ -226,26 +228,26 @@ export function GiftHistory({ initialData }: GiftHistoryProps) {
         <div className="grid gap-4 md:grid-cols-2">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Gifts Received</CardTitle>
+              <CardTitle className="text-sm font-medium">{t('dash.giftsReceived')}</CardTitle>
               <Heart className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{statistics.total_gifts_received}</div>
               <p className="text-xs text-muted-foreground">
-                ${statistics.total_amount_received.toFixed(2)} total received
+                {t('dash.totalReceivedAmt', { amount: statistics.total_amount_received.toFixed(2) })}
               </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Completed</CardTitle>
+              <CardTitle className="text-sm font-medium">{t('dash.completed')}</CardTitle>
               <CheckCircle className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{statistics.completed_gifts}</div>
               <p className="text-xs text-muted-foreground">
-                Successfully processed
+                {t('dash.processed')}
               </p>
             </CardContent>
           </Card>

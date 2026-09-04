@@ -12,6 +12,7 @@ import {
 import { toggleItemPurchased, type WishlistItem, type Profile } from '@/lib/actions/wishlist'
 import { cn } from '@/lib/utils'
 import { useCart } from '@/lib/contexts/CartContext'
+import { useLanguage } from '@/lib/contexts/LanguageContext'
 
 interface WishlistItemCardProps {
   item: WishlistItem
@@ -25,6 +26,7 @@ interface WishlistItemCardProps {
 
 export function WishlistItemCard({ item, profile, palette }: WishlistItemCardProps) {
   const { addToCart } = useCart()
+  const { t } = useLanguage()
   const [isAddingToCart, setIsAddingToCart] = useState(false)
 
   const handleAddToCart = () => {
@@ -55,7 +57,7 @@ export function WishlistItemCard({ item, profile, palette }: WishlistItemCardPro
             <div className="absolute top-4 right-4">
               <Badge className="bg-green-500 text-white">
                 <Gift className="h-3 w-3 mr-1" />
-                Purchased
+                {t('wishlist.purchased')}
               </Badge>
             </div>
           )}
@@ -90,7 +92,7 @@ export function WishlistItemCard({ item, profile, palette }: WishlistItemCardPro
                   className="flex items-center justify-center gap-2"
                 >
                   <ExternalLink className="h-4 w-4" />
-                  View Item
+                  {t('wishlist.viewItem')}
                 </a>
               </Button>
             )}
@@ -103,11 +105,11 @@ export function WishlistItemCard({ item, profile, palette }: WishlistItemCardPro
                 className={cn("flex-1", palette?.buttonOutline || "border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white")}
               >
                 {isAddingToCart ? (
-                  'Adding...'
+                  t('wishlist.adding')
                 ) : (
                   <>
-                    <Gift className="h-4 w-4 mr-2" />
-                    I'll Gift This
+                    <Gift className="h-4 w-4 me-2" />
+                    {t('wishlist.giftThis')}
                   </>
                 )}
               </Button>

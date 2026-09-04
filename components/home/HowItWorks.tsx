@@ -13,35 +13,38 @@ import {
   CheckCircle 
 } from 'lucide-react'
 
+import { useLanguage } from '@/lib/contexts/LanguageContext'
+
 export function HowItWorks() {
+  const { t } = useLanguage()
   const steps = [
     {
       step: 1,
       icon: UserPlus,
-      title: 'Create Your Account',
-      description: 'Sign up in seconds with your email or Google account. Choose your unique username.',
-      details: ['Free registration', 'Secure & private', 'Custom URL'],
+      title: t('home.how.step1.title'),
+      description: t('home.how.step1.desc'),
+      details: [t('home.how.step1.d1'), t('home.how.step1.d2'), t('home.how.step1.d3')],
     },
     {
       step: 2,
       icon: ListPlus,
-      title: 'Build Your Wishlist',
-      description: 'Add items you love from any website, set prices, and organize everything beautifully.',
-      details: ['Add from any website', 'Set gift priorities', 'Rich descriptions & images'],
+      title: t('home.how.step2.title'),
+      description: t('home.how.step2.desc'),
+      details: [t('home.how.step2.d1'), t('home.how.step2.d2'), t('home.how.step2.d3')],
     },
     {
       step: 3,
       icon: Share2,
-      title: 'Share Your Link',
-      description: 'Share your personalized wishlist link on social media, messaging apps, or anywhere.',
-      details: ['Beautiful sharing page', 'Mobile optimized', 'Social media ready'],
+      title: t('home.how.step3.title'),
+      description: t('home.how.step3.desc'),
+      details: [t('home.how.step3.d1'), t('home.how.step3.d2'), t('home.how.step3.d3')],
     },
     {
       step: 4,
       icon: Gift,
-      title: 'Receive Amazing Gifts',
-      description: 'Friends and family can see your wishes and send you exactly what you want.',
-      details: ['Secure payments', 'Real-time notifications', 'Thank you messages'],
+      title: t('home.how.step4.title'),
+      description: t('home.how.step4.desc'),
+      details: [t('home.how.step4.d1'), t('home.how.step4.d2'), t('home.how.step4.d3')],
     },
   ]
 
@@ -50,11 +53,10 @@ export function HowItWorks() {
       <div className="design-container">
         <div className="text-center mb-16">
           <h2 className="text-design-h2 font-bold mb-6 text-design-primary">
-            How It Works
+            {t('home.how.title')}
           </h2>
           <p className="text-design-body text-design-primary max-w-2xl mx-auto">
-            Getting started with Hadiyyati is simple. Follow these four easy steps 
-            to create your wishlist and start receiving meaningful gifts.
+            {t('home.how.subtitle')}
           </p>
         </div>
 
@@ -89,10 +91,10 @@ export function HowItWorks() {
                   </p>
                   
                   {/* Details */}
-                  <ul className="space-y-2 text-left">
+                  <ul className="space-y-2 text-start">
                     {step.details.map((detail, idx) => (
                       <li key={idx} className="flex items-center text-design-small text-white">
-                        <CheckCircle className="h-4 w-4 text-white mr-2 flex-shrink-0" />
+                        <CheckCircle className="h-4 w-4 text-white me-2 flex-shrink-0" />
                         {detail}
                       </li>
                     ))}
@@ -108,8 +110,8 @@ export function HowItWorks() {
         <div className="text-center">
           <Button asChild size="lg" className="px-8 py-6 text-lg group shadow-none rounded-full text-white font-semibold hover:opacity-90" style={{ backgroundImage: 'linear-gradient(to right, #D1AB30, #E8C547)' }}>
             <Link href="/auth">
-              Create Your Wishlist Now
-              <ArrowRight className="ml-2 h-5 w-5 transition-design group-hover:translate-x-1" />
+              {t('home.how.cta')}
+              <ArrowRight className="ms-2 h-5 w-5 transition-design group-hover:translate-x-1 rtl:group-hover:-translate-x-1" />
             </Link>
           </Button>
         </div>

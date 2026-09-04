@@ -4,9 +4,11 @@ import React from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { ArrowRight, Star, Users, Gift, Shield, Play } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
+import { useLanguage } from '@/lib/contexts/LanguageContext'
 
 export function Hero() {
+  const { t } = useLanguage()
   return (
     <div className="relative isolate min-h-screen flex items-center justify-center overflow-hidden bg-design-primary" style={{ width: '100vw', marginLeft: 'calc(-50vw + 50%)', marginRight: 'calc(-50vw + 50%)' }}>
       {/* Background decoration */}
@@ -26,15 +28,13 @@ export function Hero() {
           
           {/* Main heading */}
           <h1 className="text-design-h1 font-bold mb-4 text-white leading-tight">
-            All your gift wishes.
+            {t('home.hero.title1')}
             <br />
-            <span className="text-white">One beautiful link.</span>
+            <span className="text-white">{t('home.hero.title2')}</span>
           </h1>
           
-          {/* Subtitle */}
           <p className="text-xl mb-6 text-white max-w-3xl mx-auto leading-relaxed">
-            Create a stunning wishlist, share it effortlessly, and receive meaningful gifts from loved ones. 
-            The modern way to celebrate life's special moments.
+            {t('home.hero.subtitle')}
           </p>
 
           {/* <div className="w-full max-w-xs mx-auto mb-8">
@@ -44,15 +44,15 @@ export function Hero() {
           {/* URL Preview */}
           <div className="inline-flex items-center gap-2 font-mono text-design-text-muted bg-white rounded-design-card px-6 py-4 mb-12 shadow-design-card border border-design-gray-200">
             <span className="text-design-text-body">hadiyyati.me/</span>
-            <span className="text-design-primary font-semibold">yourname</span>
+            <span className="text-design-primary font-semibold">{t('home.hero.yourName')}</span>
           </div>
           
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
             <Button asChild size="lg" className="group shadow-design-card px-8 py-6 text-lg bg-white text-design-primary hover:bg-white/90 rounded-full">
               <Link href="/auth">
-                Get Started for Free
-                <ArrowRight className="ml-2 h-5 w-5 text-design-primary transition-design group-hover:translate-x-1" />
+                {t('home.hero.cta')}
+                <ArrowRight className="ms-2 h-5 w-5 text-design-primary transition-design group-hover:translate-x-1 rtl:group-hover:-translate-x-1" />
               </Link>
             </Button>
             {/* <Button asChild variant="outline" size="lg" className="px-8 py-6 text-lg group bg-white text-design-primary border-white hover:bg-white/90 rounded-full">
