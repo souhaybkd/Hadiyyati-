@@ -41,6 +41,36 @@ export type WishlistWithProfile = {
   items: WishlistItem[];
 }
 
+function sortWishlistItems(items: WishlistItem[]): WishlistItem[] {
+  return [...items].sort((a, b) => {
+    const aOrder = a.sort_order
+    const bOrder = b.sort_order
+    if (aOrder == null && bOrder == null) {
+      return new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    }
+    if (aOrder == null) return 1
+    if (bOrder == null) return -1
+    if (aOrder !== bOrder) return aOrder - bOrder
+    return new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+  })
+}
+
+async function revalidateOwnerWishlist(userId: string) {
+  revalidatePath('/dashboard')
+  revalidatePath('/wishlist', 'layout')
+
+  const admin = createSupabaseServiceClient()
+  const { data } = await admin
+    .from('profiles')
+    .select('username')
+    .eq('id', userId)
+    .maybeSingle()
+
+  if (data?.username) {
+    revalidatePath(`/wishlist/${data.username}`)
+  }
+}
+
 // Get current user's wishlist items
 export async function getUserWishlistItems(): Promise<WishlistItem[]> {
   const supabase = await createSupabaseServerClient()
@@ -52,15 +82,15 @@ export async function getUserWishlistItems(): Promise<WishlistItem[]> {
     .from('wishlist_items')
     .select('*')
     .eq('user_id', user.id)
-    .order('sort_order')
-    .order('created_at', { ascending: false })
+    .order('sort_order', { ascending: true, nullsFirst: false })
+    .order('created_at', { ascending: true })
 
   if (error) {
     console.error('Error fetching wishlist items:', error)
     return []
   }
 
-  return items || []
+  return sortWishlistItems(items || [])
 }
 
 // Get current user's profile
@@ -184,14 +214,15 @@ export async function getPublicWishlist(userId: string): Promise<WishlistWithPro
     .select('*')
     .eq('user_id', userId)
     .eq('is_public', true)
-    .order('created_at', { ascending: false })
+    .order('sort_order', { ascending: true, nullsFirst: false })
+    .order('created_at', { ascending: true })
 
   if (itemsError) {
     console.error('Error fetching wishlist items:', itemsError)
     return { profile, items: [] }
   }
 
-  return { profile, items: items || [] }
+  return { profile, items: sortWishlistItems(items || []) }
 }
 
 // Get public wishlist by username
@@ -216,14 +247,15 @@ export async function getPublicWishlistByUsername(username: string): Promise<Wis
     .select('*')
     .eq('user_id', profile.id)
     .eq('is_public', true)
-    .order('created_at', { ascending: false })
+    .order('sort_order', { ascending: true, nullsFirst: false })
+    .order('created_at', { ascending: true })
 
   if (itemsError) {
     console.error('Error fetching wishlist items:', itemsError)
     return { profile, items: [] }
   }
 
-  return { profile, items: items || [] }
+  return { profile, items: sortWishlistItems(items || []) }
 }
 
 // Add new wishlist item
@@ -246,10 +278,15 @@ export async function addWishlistItem(formData: FormData) {
     throw new Error('Title and price are required')
   }
 
-  const { count } = await supabase
+  const { data: lastItem } = await supabase
     .from('wishlist_items')
-    .select('*', { count: 'exact', head: true })
+    .select('sort_order')
     .eq('user_id', user.id)
+    .order('sort_order', { ascending: false, nullsFirst: false })
+    .limit(1)
+    .maybeSingle()
+
+  const nextSortOrder = (lastItem?.sort_order ?? -1) + 1
 
   const { error } = await supabase
     .from('wishlist_items')
@@ -261,7 +298,7 @@ export async function addWishlistItem(formData: FormData) {
       image_url: image_url || null,
       price: parseFloat(price),
       is_public,
-      sort_order: count
+      sort_order: nextSortOrder
     })
 
   if (error) {
@@ -269,7 +306,7 @@ export async function addWishlistItem(formData: FormData) {
     throw new Error('Failed to add item')
   }
 
-  revalidatePath('/dashboard')
+  await revalidateOwnerWishlist(user.id)
   return { success: true }
 }
 
@@ -321,7 +358,7 @@ export async function updateWishlistItem(itemId: string, formData: FormData) {
     throw new Error('Failed to update item')
   }
 
-  revalidatePath('/dashboard')
+  await revalidateOwnerWishlist(user.id)
   return { success: true }
 }
 
@@ -334,29 +371,77 @@ export async function updateWishlistOrder(items: { id: string, sort_order: numbe
         throw new Error('User not authenticated');
     }
 
-    const updates = items.map(item =>
-        supabase
+    if (!items.length) {
+        return { success: true }
+    }
+
+    const uniqueIds = new Set(items.map((item) => item.id))
+    if (uniqueIds.size !== items.length) {
+        throw new Error('Failed to update item order')
+    }
+
+    const { data: owned, error: ownedError } = await supabase
+        .from('wishlist_items')
+        .select('id')
+        .eq('user_id', user.id)
+
+    if (ownedError) {
+        console.error('Error verifying wishlist items:', ownedError)
+        throw new Error('Failed to update item order')
+    }
+
+    const ownedIds = new Set((owned || []).map((row) => row.id))
+    if (items.some((item) => !ownedIds.has(item.id))) {
+        throw new Error('Item not found or unauthorized')
+    }
+
+    // Sequential writes: parallel updates can race and leave a stale order.
+    for (const item of items) {
+        const { data, error } = await supabase
             .from('wishlist_items')
             .update({ sort_order: item.sort_order })
             .eq('id', item.id)
             .eq('user_id', user.id)
-    );
+            .select('id')
 
-    const results = await Promise.all(updates);
-
-    results.forEach((result: any) => {
-        if (result.error) {
-            console.error('Error updating item order:', result.error);
-            throw new Error('Failed to update item order');
+        if (error || !data?.length) {
+            console.error('Error updating item order:', error)
+            throw new Error('Failed to update item order')
         }
-    });
+    }
 
-    revalidatePath('/dashboard');
+    await revalidateOwnerWishlist(user.id)
     return { success: true };
+}
+
+async function unlinkWishlistItemReferences(itemId: string) {
+  try {
+    const admin = createSupabaseServiceClient()
+    await admin.from('order_items').update({ wishlist_item_id: null }).eq('wishlist_item_id', itemId)
+    await admin.from('transactions').update({ wishlist_item_id: null }).eq('wishlist_item_id', itemId)
+  } catch (error) {
+    console.error('Could not unlink wishlist item references:', error)
+  }
+}
+
+async function deleteProductImage(imageUrl: string | null) {
+  if (!imageUrl || !imageUrl.includes('/product-images/')) return
+  try {
+    const path = decodeURIComponent(imageUrl.split('/product-images/')[1]?.split('?')[0] || '')
+    if (path) {
+      await deleteStorageFile('product-images', path)
+    }
+  } catch (error) {
+    console.error('Could not delete product image:', error)
+  }
 }
 
 // Delete wishlist item
 export async function deleteWishlistItem(itemId: string) {
+  if (!itemId) {
+    throw new Error('Item not found')
+  }
+
   const supabase = await createSupabaseServerClient()
   
   const { data: { user } } = await supabase.auth.getUser()
@@ -364,28 +449,53 @@ export async function deleteWishlistItem(itemId: string) {
     throw new Error('User not authenticated')
   }
 
-  // Verify the item belongs to the user
-  const { data: item } = await supabase
+  const { data: item, error: fetchError } = await supabase
     .from('wishlist_items')
-    .select('user_id')
+    .select('id, user_id, image_url')
     .eq('id', itemId)
-    .single()
+    .eq('user_id', user.id)
+    .maybeSingle()
 
-  if (!item || item.user_id !== user.id) {
+  if (fetchError) {
+    console.error('Error loading wishlist item for delete:', fetchError)
+    throw new Error('Failed to delete item')
+  }
+
+  if (!item) {
     throw new Error('Item not found or unauthorized')
   }
 
-  const { error } = await supabase
+  let { data: deletedRows, error } = await supabase
     .from('wishlist_items')
     .delete()
     .eq('id', itemId)
+    .eq('user_id', user.id)
+    .select('id')
+
+  if (error?.code === '23503') {
+    await unlinkWishlistItemReferences(itemId)
+    const retry = await supabase
+      .from('wishlist_items')
+      .delete()
+      .eq('id', itemId)
+      .eq('user_id', user.id)
+      .select('id')
+    deletedRows = retry.data
+    error = retry.error
+  }
 
   if (error) {
     console.error('Error deleting wishlist item:', error)
     throw new Error('Failed to delete item')
   }
 
-  revalidatePath('/dashboard')
+  if (!deletedRows?.length) {
+    throw new Error('Failed to delete item')
+  }
+
+  await deleteProductImage(item.image_url)
+
+  await revalidateOwnerWishlist(user.id)
   return { success: true }
 }
 
@@ -422,8 +532,7 @@ export async function toggleItemPurchased(itemId: string, isPurchased: boolean, 
     throw new Error('Failed to update item')
   }
 
-  revalidatePath('/dashboard')
-  revalidatePath('/wishlist')
+  await revalidateOwnerWishlist(user.id)
   return { success: true }
 }
 
@@ -457,7 +566,7 @@ export async function toggleItemPublic(itemId: string, isPublic: boolean) {
     throw new Error('Failed to update item')
   }
 
-  revalidatePath('/dashboard')
+  await revalidateOwnerWishlist(user.id)
   return { success: true }
 }
 

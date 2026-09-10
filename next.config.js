@@ -7,11 +7,17 @@ const nextConfig = {
         hostname: 'lh3.googleusercontent.com',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: '*.supabase.co',
+        pathname: '/storage/v1/object/public/**',
+      },
     ],
   },
-  // Enable experimental features if needed
   experimental: {
-    // Add any experimental features here if needed
+    serverActions: {
+      bodySizeLimit: '6mb',
+    },
   },
 }
 

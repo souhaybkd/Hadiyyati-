@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, type MouseEvent } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -73,6 +73,7 @@ import { ProfileImage } from "@/components/shared/ProfileImage";
 import { ProfileImageEditorCompact } from "./ProfileImageEditorCompact";
 import { BackgroundImageEditor } from "./BackgroundImageEditor";
 import { useLanguage } from "@/lib/contexts/LanguageContext";
+import { useCart } from "@/lib/contexts/CartContext";
 
 const colorPalettes = [
     { 
@@ -176,14 +177,22 @@ const WishlistItemEditor = ({
   const [isDeleting, setIsDeleting] = useState(false);
   const [isTogglingPublic, setIsTogglingPublic] = useState(false);
   const [isTogglingPurchased, setIsTogglingPurchased] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  const handleDelete = async () => {
+  const handleDelete = async (event: MouseEvent) => {
+    event.preventDefault();
+    if (isDeleting) return;
+
     setIsDeleting(true);
+    setDeleteError(null);
     try {
       await deleteWishlistItem(item.id);
+      setConfirmOpen(false);
       onDelete(item.id);
     } catch (error) {
       console.error('Error deleting item:', error);
+      setDeleteError(t('dash.deleteFailed'));
     } finally {
       setIsDeleting(false);
     }
@@ -221,7 +230,11 @@ const WishlistItemEditor = ({
     >
       <CardContent className=" ">
         <div className="flex items-center gap-3">
-          <div {...provided.dragHandleProps} className="cursor-grab">
+          <div
+            {...provided.dragHandleProps}
+            className="cursor-grab active:cursor-grabbing touch-none shrink-0 p-1"
+            aria-label="Reorder item"
+          >
             <GripVertical className="h-5 w-5 text-muted-foreground" />
           </div>
           {item.image_url ? (
@@ -276,16 +289,25 @@ const WishlistItemEditor = ({
                   size="sm" 
                   className="h-7 w-7 p-0"
                   onClick={() => onEdit(item)}
+                  onPointerDown={(event) => event.stopPropagation()}
                 >
                   <Edit2 className="h-3 w-3" />
                 </Button>
-                <AlertDialog>
+                <AlertDialog
+                  open={confirmOpen}
+                  onOpenChange={(open) => {
+                    if (isDeleting) return;
+                    setConfirmOpen(open);
+                    if (!open) setDeleteError(null);
+                  }}
+                >
                   <AlertDialogTrigger asChild>
                     <Button 
                       variant="ghost" 
                       size="sm" 
                       className="h-7 w-7 p-0 text-destructive hover:text-destructive"
                       disabled={isDeleting}
+                      onPointerDown={(event) => event.stopPropagation()}
                     >
                       {isDeleting ? (
                         <Loader2 className="h-3 w-3 animate-spin" />
@@ -301,9 +323,14 @@ const WishlistItemEditor = ({
                         {t('dash.deleteConfirm', { title: item.title })}
                       </AlertDialogDescription>
                     </AlertDialogHeader>
+                    {deleteError && (
+                      <p className="text-sm text-destructive">{deleteError}</p>
+                    )}
                     <AlertDialogFooter>
-                      <AlertDialogCancel>{t('dash.cancel')}</AlertDialogCancel>
-                      <AlertDialogAction onClick={handleDelete}>{t('dash.delete')}</AlertDialogAction>
+                      <AlertDialogCancel disabled={isDeleting}>{t('dash.cancel')}</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleDelete} disabled={isDeleting}>
+                        {isDeleting ? t('dash.deleting') : t('dash.delete')}
+                      </AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
@@ -394,6 +421,7 @@ const WishlistPreview = ({
 
 export function MyWishlist() {
   const { t } = useLanguage()
+  const { removeFromCart } = useCart()
   const [profile, setProfile] = useState<Profile | null>(null);
   const [items, setItems] = useState<WishlistItem[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
@@ -413,6 +441,37 @@ export function MyWishlist() {
   
   const [avatarData, setAvatarData] = useState<{ type: 'icon' | 'upload', value: string } | null>(null);
   const [backgroundData, setBackgroundData] = useState<{ type: 'upload' | 'remove', value: string } | null>(null);
+  const pendingOrderRef = useRef<{ id: string; sort_order: number }[] | null>(null)
+  const savingOrderRef = useRef(false)
+
+  const persistWishlistOrder = useCallback(async (orderedItems: WishlistItem[]) => {
+    pendingOrderRef.current = orderedItems.map((item, index) => ({
+      id: item.id,
+      sort_order: index,
+    }))
+
+    if (savingOrderRef.current) return
+
+    savingOrderRef.current = true
+    try {
+      while (pendingOrderRef.current) {
+        const payload = pendingOrderRef.current
+        pendingOrderRef.current = null
+        await updateWishlistOrder(payload)
+      }
+    } catch (error) {
+      console.error('Failed to update wishlist order:', error)
+      pendingOrderRef.current = null
+      try {
+        const itemsData = await getUserWishlistItems()
+        setItems(itemsData)
+      } catch (reloadError) {
+        console.error('Failed to reload wishlist after order error:', reloadError)
+      }
+    } finally {
+      savingOrderRef.current = false
+    }
+  }, [])
 
   useEffect(() => {
     // Since middleware protects this page, we can directly fetch the data.
@@ -440,6 +499,7 @@ export function MyWishlist() {
 
   // Refresh data function
   const refreshData = useCallback(async (showRefreshingState = true) => {
+    if (savingOrderRef.current || pendingOrderRef.current) return
     if (showRefreshingState) setRefreshing(true);
     try {
       const [profileData, itemsData] = await Promise.all([
@@ -513,6 +573,8 @@ export function MyWishlist() {
 
   const handleDelete = (itemId: string) => {
     setItems(prev => prev.filter(item => item.id !== itemId));
+    setEditingItem(prev => (prev?.id === itemId ? null : prev));
+    removeFromCart(itemId);
   };
 
   const handleTogglePublic = (itemId: string, is_public: boolean) => {
@@ -602,25 +664,19 @@ export function MyWishlist() {
 
   const handleOnDragEnd = async (result: DropResult) => {
     if (!result.destination || !items) return;
+    if (result.source.index === result.destination.index) return;
 
     const reorderedItems = Array.from(items);
     const [reorderedItem] = reorderedItems.splice(result.source.index, 1);
     reorderedItems.splice(result.destination.index, 0, reorderedItem);
 
-    setItems(reorderedItems);
-
-    const itemsToUpdate = reorderedItems.map((item, index) => ({
-      id: item.id,
+    const itemsWithOrder = reorderedItems.map((item, index) => ({
+      ...item,
       sort_order: index,
     }));
 
-    try {
-      await updateWishlistOrder(itemsToUpdate);
-    } catch (error) {
-      console.error('Failed to update wishlist order:', error);
-      // Optionally, revert the state change on error
-      loadData();
-    }
+    setItems(itemsWithOrder);
+    await persistWishlistOrder(itemsWithOrder);
   };
 
   const handleCopyLink = () => {

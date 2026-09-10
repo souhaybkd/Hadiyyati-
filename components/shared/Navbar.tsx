@@ -11,7 +11,7 @@ import { Menu, X } from 'lucide-react'
 
 export function Navbar() {
   const pathname = usePathname()
-  const { t, direction } = useLanguage()
+  const { t } = useLanguage()
   const [isMenuOpen, setIsMenuOpen] = React.useState(false)
 
   const navigation = [
@@ -23,27 +23,22 @@ export function Navbar() {
   const getBorderRadius = (index: number) => {
     const isFirst = index === 0
     const isLast = index === navigation.length - 1
-    if (direction === 'rtl') {
-      if (isFirst) return '0px 50px 50px 0px'
-      if (isLast) return '50px 0px 0px 50px'
-      return '0'
-    }
     if (isFirst) return '50px 0px 0px 50px'
     if (isLast) return '0px 50px 50px 0px'
     return '0'
   }
 
   return (
-    <nav className="bg-white sticky top-0 z-50 border-b border-gray-200">
+    <nav dir="ltr" className="bg-white sticky top-0 z-50 border-b border-gray-200">
       <div className="design-container">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between h-20">
           <Link href="/" className="flex items-center gap-2 group shrink-0">
             <Image
               src="/assets/img/LOGO.png"
               alt="Hadiyyati"
-              width={100}
-              height={120}
-              className="h-9 w-auto object-contain md:h-10"
+              width={160}
+              height={192}
+              className="h-12 w-auto object-contain md:h-14"
               priority
             />
           </Link>

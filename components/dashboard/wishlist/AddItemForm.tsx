@@ -15,8 +15,7 @@ import {
   type WishlistItem 
 } from "@/lib/actions/wishlist";
 import { getPlatformFeePercentage, calculateExpectedPayout } from "@/lib/actions/platform-settings";
-import { uploadProductImage, validateImageFile } from "@/lib/storage";
-import { createSupabaseClient } from "@/lib/supabase";
+import { optimizeProductImage, validateImageFile } from "@/lib/storage";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/lib/contexts/LanguageContext";
 
@@ -152,29 +151,47 @@ export function AddItemForm({ item, onItemAdded, onClose }: AddItemFormProps) {
     setUploadError(null)
 
     try {
-      const supabase = createSupabaseClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      
-      if (!user) {
-        setUploadError('Please log in to upload images')
-        setIsUploading(false)
+      let fileToUpload = file
+      try {
+        fileToUpload = await optimizeProductImage(file)
+      } catch (optimizationError) {
+        console.warn('Product image optimization failed, using original:', optimizationError)
+        if (file.size > 4 * 1024 * 1024) {
+          setUploadError('Could not compress this image. Please use a JPEG or PNG under 4MB.')
+          return
+        }
+      }
+
+      const payload = new FormData()
+      payload.append('file', fileToUpload)
+
+      const response = await fetch('/api/upload/product-image', {
+        method: 'POST',
+        body: payload,
+      })
+
+      const result = await response.json().catch(() => ({})) as { publicUrl?: string; error?: string }
+
+      if (!response.ok || !result.publicUrl) {
+        if (response.status === 413) {
+          setUploadError('Image is too large for upload. Please use a smaller JPEG or PNG.')
+        } else {
+          setUploadError(result.error || 'Upload failed. Please try again.')
+        }
         return
       }
 
-      const result = await uploadProductImage(file, user.id)
-
-      if (result.success && result.publicUrl) {
-        setUploadedImage(result.publicUrl)
-        setFormData(prev => ({ ...prev, image_url: result.publicUrl || '' }))
-        setUploadError(null)
-      } else {
-        setUploadError(result.error || 'Upload failed. Please try again.')
-      }
+      setUploadedImage(result.publicUrl)
+      setFormData(prev => ({ ...prev, image_url: result.publicUrl || '' }))
+      setUploadError(null)
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to upload image'
       setUploadError(errorMessage)
     } finally {
       setIsUploading(false)
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
     }
   }
 
@@ -392,7 +409,7 @@ export function AddItemForm({ item, onItemAdded, onClose }: AddItemFormProps) {
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/*"
+              accept="image/jpeg,image/png,image/gif,image/webp,.jpg,.jpeg,.png,.gif,.webp"
               onChange={handleFileInputChange}
               className="hidden"
               disabled={isUploading}

@@ -1,6 +1,9 @@
 'use client'
 
 import { createSupabaseClient } from '@/lib/supabase'
+import { validateImageFile } from '@/lib/image-file'
+
+export { validateImageFile } from '@/lib/image-file'
 
 export interface UploadResult {
   success: boolean
@@ -237,7 +240,7 @@ export async function uploadProfileImage(file: File, userId: string): Promise<Up
 }
 
 // Enhanced image optimization function for product images
-async function optimizeProductImage(file: File): Promise<File> {
+export async function optimizeProductImage(file: File): Promise<File> {
   return new Promise((resolve, reject) => {
     const canvas = document.createElement('canvas')
     const ctx = canvas.getContext('2d')
@@ -269,7 +272,7 @@ async function optimizeProductImage(file: File): Promise<File> {
       canvas.toBlob(
         (blob) => {
           if (blob) {
-            const optimizedFile = new File([blob], file.name, {
+            const optimizedFile = new File([blob], 'product.jpg', {
               type: 'image/jpeg', // Convert to JPEG for better compression
               lastModified: Date.now()
             })
@@ -289,11 +292,11 @@ async function optimizeProductImage(file: File): Promise<File> {
 }
 
 // Generate secure file path for product images
-function generateProductFilePath(userId: string, originalName: string): string {
+function generateProductFilePath(userId: string, _originalName: string): string {
   // Sanitize filename and add timestamp
   const timestamp = Date.now()
   const randomSuffix = Math.random().toString(36).substring(2, 8)
-  const extension = originalName.split('.').pop()?.toLowerCase() || 'jpg'
+  const extension = 'jpg'
   const safeFilename = `product_${timestamp}_${randomSuffix}.${extension}`
   
   return `${userId}/${safeFilename}`
@@ -347,7 +350,7 @@ export async function uploadProductImage(file: File, userId: string): Promise<Up
             .upload(filePath, fileToUpload, {
               cacheControl: '3600',
               upsert: false,
-              contentType: fileToUpload.type
+              contentType: fileToUpload.type || 'image/jpeg'
             })
           
           if (error) throw error
@@ -363,19 +366,22 @@ export async function uploadProductImage(file: File, userId: string): Promise<Up
 
     if (uploadError) {
       console.error('Supabase upload error:', uploadError)
-      
-      // Provide specific error messages
-      if (uploadError.message.includes('permission')) {
+      const message = typeof uploadError.message === 'string' ? uploadError.message : 'Upload failed'
+
+      if (message.toLowerCase().includes('bucket')) {
+        return { success: false, error: 'The product-images storage bucket is missing in Supabase.' }
+      }
+      if (message.includes('permission') || message.toLowerCase().includes('row-level security')) {
         return { success: false, error: 'Permission denied. Please check your account status.' }
       }
-      if (uploadError.message.includes('size')) {
+      if (message.includes('size')) {
         return { success: false, error: 'File is too large. Please use an image under 5MB.' }
       }
-      if (uploadError.message.includes('duplicate')) {
+      if (message.includes('duplicate')) {
         return { success: false, error: 'This file already exists. Please try again.' }
       }
       
-      return { success: false, error: `Upload failed: ${uploadError.message}` }
+      return { success: false, error: `Upload failed: ${message}` }
     }
 
     // 6. Get public URL
@@ -430,43 +436,6 @@ export function extractFilePathFromUrl(avatarUrl: string): string | null {
   }
 }
 
-// Enhanced image validation with better error messages
-export function validateImageFile(file: File): { valid: boolean; error?: string } {
-  // Check if file exists
-  if (!file) {
-    return { valid: false, error: 'No file selected' }
-  }
-
-  // Check file type
-  if (!file.type.startsWith('image/')) {
-    return { valid: false, error: 'Please select an image file' }
-  }
-
-  // Check file size (max 5MB)
-  const maxSize = 5 * 1024 * 1024
-  if (file.size > maxSize) {
-    const sizeMB = (file.size / (1024 * 1024)).toFixed(1)
-    return { valid: false, error: `File size (${sizeMB}MB) exceeds 5MB limit` }
-  }
-
-  // Check minimum size (avoid tiny images)
-  if (file.size < 1024) {
-    return { valid: false, error: 'Image file is too small (minimum 1KB)' }
-  }
-
-  // Check file extension
-  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
-  if (!allowedTypes.includes(file.type)) {
-    return { valid: false, error: 'Supported formats: JPEG, PNG, GIF, WebP' }
-  }
-
-  // Check filename for security
-  if (file.name.includes('..') || file.name.includes('/') || file.name.includes('\\')) {
-    return { valid: false, error: 'Invalid filename' }
-  }
-
-  return { valid: true }
-}
 
 // Delete profile image from storage
 export async function deleteProfileImage(filePath: string): Promise<{ success: boolean; error?: string }> {

@@ -49,7 +49,7 @@ export function HowItWorks() {
   ]
 
   return (
-    <div className="design-section-spacing bg-white">
+    <div id="how-it-works" className="design-section-spacing bg-white scroll-mt-20">
       <div className="design-container">
         <div className="text-center mb-16">
           <h2 className="text-design-h2 font-bold mb-6 text-design-primary">

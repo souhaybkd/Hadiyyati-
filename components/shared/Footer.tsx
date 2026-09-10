@@ -7,9 +7,9 @@ import { Mail } from 'lucide-react'
 import { useLanguage } from '@/lib/contexts/LanguageContext'
 
 export function Footer() {
-  const { t, direction } = useLanguage()
+  const { t } = useLanguage()
   return (
-    <footer className="bg-design-light text-design-secondary">
+    <footer dir="ltr" className="bg-design-light text-design-secondary">
       <div className="design-container py-12">
         <div className="flex flex-col items-center gap-8 text-center md:flex-row md:justify-between md:text-left">
           {/* Logo and Info */}

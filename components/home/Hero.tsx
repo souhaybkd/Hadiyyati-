@@ -33,9 +33,10 @@ export function Hero() {
             <span className="text-white">{t('home.hero.title2')}</span>
           </h1>
           
-          <p className="text-xl mb-6 text-white max-w-3xl mx-auto leading-relaxed">
-            {t('home.hero.subtitle')}
-          </p>
+          <div className="text-xl mb-6 text-white max-w-3xl mx-auto leading-relaxed space-y-3">
+            <p>{t('home.hero.subtitle')}</p>
+            {t('home.hero.subtitle2') ? <p>{t('home.hero.subtitle2')}</p> : null}
+          </div>
 
           {/* <div className="w-full max-w-xs mx-auto mb-8">
             <Lottie animationData={giftAnimation} loop={true} />

@@ -80,6 +80,9 @@ const palettes = {
 };
 
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export default async function WishlistPage(props: WishlistPageProps) {
   const { username } = await props.params
   const wishlistData = await getPublicWishlistByUsername(username)

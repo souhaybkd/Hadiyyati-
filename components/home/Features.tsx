@@ -79,7 +79,9 @@ export function Features() {
         {/* Demo Section */}
         <div className="text-center">
           <h3 className="text-design-h3 font-semibold mb-6 text-design-primary">
-            {t('home.features.demo')}
+            <a href="#how-it-works" className="hover:opacity-80 transition-design">
+              {t('home.features.demo')}
+            </a>
           </h3>
           <div className="bg-design-gray-100 rounded-design-image aspect-video flex items-center justify-center mb-8 overflow-hidden border border-design-primary/20 shadow-design-card">
             <img 
