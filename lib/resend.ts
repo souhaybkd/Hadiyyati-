@@ -13,10 +13,21 @@ function getResend() {
   return resend
 }
 
+function getFromAddress() {
+  const from = process.env.RESEND_FROM_EMAIL || 'hadiyyati <noreply@hadiyyati.me>'
+  // hadiyyati.com is not the verified Resend domain; hadiyyati.me is.
+  if (from.toLowerCase().includes('@hadiyyati.com')) {
+    return 'hadiyyati <noreply@hadiyyati.me>'
+  }
+  return from
+}
+
 // Email configuration
 export const EMAIL_CONFIG = {
-  from: process.env.RESEND_FROM_EMAIL || 'hadiyyati <noreply@hadiyyati.com>',
-  replyTo: process.env.RESEND_REPLY_TO_EMAIL || 'support@hadiyyati.com',
+  get from() {
+    return getFromAddress()
+  },
+  replyTo: process.env.RESEND_REPLY_TO_EMAIL || 'info@hadiyyati.me',
   domain: process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
 } as const
 
@@ -104,6 +115,11 @@ export async function sendContactEmail({
     if (result.error) {
       console.error('❌ Failed to send contact email:', result.error)
       return { success: false, error: result.error }
+    }
+
+    if (!result.data?.id) {
+      console.error('❌ Contact email send returned no id:', result)
+      return { success: false, error: 'Resend did not confirm the email was sent' }
     }
 
     return { success: true, data: result }
