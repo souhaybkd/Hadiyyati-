@@ -56,18 +56,26 @@ function sortWishlistItems(items: WishlistItem[]): WishlistItem[] {
 }
 
 async function revalidateOwnerWishlist(userId: string) {
-  revalidatePath('/dashboard')
-  revalidatePath('/wishlist', 'layout')
+  try {
+    revalidatePath('/dashboard')
+    revalidatePath('/wishlist', 'layout')
+  } catch (error) {
+    console.error('Failed to revalidate dashboard/wishlist layout:', error)
+  }
 
-  const admin = createSupabaseServiceClient()
-  const { data } = await admin
-    .from('profiles')
-    .select('username')
-    .eq('id', userId)
-    .maybeSingle()
+  try {
+    const admin = createSupabaseServiceClient()
+    const { data } = await admin
+      .from('profiles')
+      .select('username')
+      .eq('id', userId)
+      .maybeSingle()
 
-  if (data?.username) {
-    revalidatePath(`/wishlist/${data.username}`)
+    if (data?.username) {
+      revalidatePath(`/wishlist/${data.username}`)
+    }
+  } catch (error) {
+    console.error('Failed to revalidate public wishlist path:', error)
   }
 }
 
@@ -570,202 +578,168 @@ export async function toggleItemPublic(itemId: string, isPublic: boolean) {
   return { success: true }
 }
 
-// Update profile settings
-export async function updateProfile(formData: FormData) {
+export type ProfileUpdateResult = {
+  success: boolean
+  error?: string
+  message?: string
+}
+
+function profileUpdateErrorMessage(error: unknown): string {
+  if (!(error instanceof Error) || !error.message) {
+    return 'Failed to update your profile. Please try again.'
+  }
+  if (error.message.includes('Server Components render') || error.message.includes('digest')) {
+    return 'Failed to update your profile. Please try again.'
+  }
+  return error.message
+}
+
+async function isUsernameTaken(username: string, userId: string): Promise<boolean | null> {
   const supabase = await createSupabaseServerClient()
-  
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
-    throw new Error('User not authenticated')
+  const { data: rpcAvailable, error: rpcError } = await supabase
+    .rpc('is_username_available', { check_username: username })
+
+  if (!rpcError) {
+    return rpcAvailable === false
   }
 
-  const username = formData.get('username') as string
-  const fullName = formData.get('full_name') as string
-  const wishlistColorPalette = formData.get('wishlist_color_palette') as string
-  const wishlistDescription = formData.get('wishlist_description') as string
-  const newAvatarUrl = formData.get('avatar_url') as string | null
-  const newBackgroundUrl = formData.get('background_image_url') as string | null
-
-  // Validate required fields
-  if (!username?.trim() || !fullName?.trim()) {
-    throw new Error('Username and full name are required')
-  }
-
-  // Validate username format (alphanumeric, underscores, hyphens only)
-  const usernameRegex = /^[a-zA-Z0-9_-]+$/
-  if (!usernameRegex.test(username)) {
-    throw new Error('Username can only contain letters, numbers, underscores, and hyphens')
-  }
-
-  let updateData: { [key: string]: any } = {
-    username: username.toLowerCase().trim(),
-    full_name: fullName.trim(),
-    wishlist_color_palette: wishlistColorPalette || 'default',
-    wishlist_description: wishlistDescription?.trim() || null,
-    updated_at: new Date().toISOString(),
-  }
-
+  console.warn('is_username_available RPC failed, falling back to service lookup:', rpcError)
   try {
-    // 1. Check if username is available (if it's being changed)
+    const admin = createSupabaseServiceClient()
+    const { data, error } = await admin
+      .from('profiles')
+      .select('id')
+      .ilike('username', username)
+      .neq('id', userId)
+      .maybeSingle()
+
+    if (error) {
+      console.error('Username fallback lookup failed:', error)
+      return null
+    }
+    return !!data
+  } catch (error) {
+    console.error('Username fallback lookup failed:', error)
+    return null
+  }
+}
+
+// Update profile settings
+export async function updateProfile(formData: FormData): Promise<ProfileUpdateResult> {
+  try {
+    const supabase = await createSupabaseServerClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return { success: false, error: 'Please log in again to save your profile.' }
+    }
+
+    const username = String(formData.get('username') || '').trim()
+    const fullName = String(formData.get('full_name') || '').trim()
+    const wishlistColorPalette = String(formData.get('wishlist_color_palette') || 'default').trim() || 'default'
+    const wishlistDescription = String(formData.get('wishlist_description') || '').trim()
+    const sentAvatar = formData.has('avatar_url')
+    const sentBackground = formData.has('background_image_url')
+    const newAvatarUrl = sentAvatar ? String(formData.get('avatar_url') || '') : null
+    const newBackgroundUrl = sentBackground ? String(formData.get('background_image_url') || '') : null
+
+    if (!username || !fullName) {
+      return { success: false, error: 'Username and full name are required' }
+    }
+
+    const nextUsername = username.toLowerCase()
+    const usernameRegex = /^[a-zA-Z0-9_-]+$/
+
     const { data: currentProfile, error: fetchError } = await supabase
       .from('profiles')
       .select('username, avatar_url, background_image_url')
       .eq('id', user.id)
       .single()
 
-    if (fetchError) {
+    if (fetchError || !currentProfile) {
       console.error('Error fetching current profile:', fetchError)
-      throw new Error('Could not retrieve your current profile information.')
+      return { success: false, error: 'Could not retrieve your current profile information.' }
     }
 
-    // Check username availability if it's being changed. This is checked via a
-    // SECURITY DEFINER function because users can no longer read other profile
-    // rows directly under RLS.
-    if (currentProfile.username !== username.toLowerCase().trim()) {
-      const { data: isAvailable, error: usernameCheckError } = await supabase
-        .rpc('is_username_available', { check_username: username })
-
-      if (usernameCheckError) {
-        console.error('Username check error:', usernameCheckError)
-        throw new Error('Could not verify username availability.')
+    if (currentProfile.username !== nextUsername) {
+      if (!usernameRegex.test(nextUsername)) {
+        return { success: false, error: 'Username can only contain letters, numbers, underscores, and hyphens' }
       }
 
-      if (!isAvailable) {
-        throw new Error('This username is already taken. Please choose another one.')
+      const taken = await isUsernameTaken(nextUsername, user.id)
+      if (taken === true) {
+        return { success: false, error: 'This username is already taken. Please choose another one.' }
       }
     }
 
-    // 2. Handle avatar updates
-    const oldAvatarUrl = currentProfile?.avatar_url
+    const updateData: Record<string, string | null> = {
+      username: nextUsername,
+      full_name: fullName,
+      wishlist_color_palette: wishlistColorPalette,
+      wishlist_description: wishlistDescription || null,
+      updated_at: new Date().toISOString(),
+    }
+
+    const oldAvatarUrl = currentProfile.avatar_url
     let avatarUpdated = false
-    
-    if (newAvatarUrl && newAvatarUrl !== oldAvatarUrl) {
+    if (sentAvatar && newAvatarUrl && newAvatarUrl !== oldAvatarUrl) {
       avatarUpdated = true
       updateData.avatar_url = newAvatarUrl
-
-      // If the old avatar was a file in storage, schedule it for deletion
-      if (oldAvatarUrl && !oldAvatarUrl.startsWith('icon:') && !oldAvatarUrl.startsWith('data:')) {
-        const oldFilePath = extractFilePathFromUrl(oldAvatarUrl)
-        if (oldFilePath) {
-          // Perform cleanup asynchronously to avoid blocking the update
-          setTimeout(async () => {
-            try {
-              await deleteStorageFile('profile-images', oldFilePath)
-              console.log('Successfully cleaned up old avatar:', oldFilePath)
-            } catch (cleanupError) {
-              console.warn('Failed to cleanup old avatar file:', cleanupError)
-              // Don't throw error for cleanup failures
-            }
-          }, 1000) // Delay to ensure the profile update completes first
-        }
-      }
     }
 
-    // 3. Handle background image updates
-    const oldBackgroundUrl = currentProfile?.background_image_url
-    let backgroundUpdated = false
-    
-    if (newBackgroundUrl !== undefined && newBackgroundUrl !== oldBackgroundUrl) {
-      backgroundUpdated = true
+    const oldBackgroundUrl = currentProfile.background_image_url
+    if (sentBackground && newBackgroundUrl !== (oldBackgroundUrl || '')) {
       updateData.background_image_url = newBackgroundUrl || null
-
-      // If the old background was a file in storage, schedule it for deletion
-      if (oldBackgroundUrl && !oldBackgroundUrl.startsWith('data:')) {
-        const oldFilePath = extractBackgroundFilePathFromUrl(oldBackgroundUrl)
-        if (oldFilePath) {
-          // Perform cleanup asynchronously to avoid blocking the update
-          setTimeout(async () => {
-            try {
-              await deleteStorageFile('background-images', oldFilePath)
-              console.log('Successfully cleaned up old background:', oldFilePath)
-            } catch (cleanupError) {
-              console.warn('Failed to cleanup old background file:', cleanupError)
-              // Don't throw error for cleanup failures
-            }
-          }, 1000) // Delay to ensure the profile update completes first
-        }
-      }
     }
 
-    // 4. Update the profile in the database
-    const { error: updateError } = await supabase
+    let writer = supabase
+    try {
+      writer = createSupabaseServiceClient()
+    } catch (error) {
+      console.warn('Service client unavailable for profile update, using user session:', error)
+    }
+
+    const { error: updateError } = await writer
       .from('profiles')
       .update(updateData)
       .eq('id', user.id)
 
     if (updateError) {
       console.error('Error updating profile:', updateError)
-      
-      // Handle specific database errors
       if (updateError.code === '23505') {
-        if (updateError.message.includes('username')) {
-          throw new Error('This username is already taken. Please choose another one.')
-        }
-        throw new Error('A profile with this information already exists.')
+        return { success: false, error: 'This username is already taken. Please choose another one.' }
       }
-      
-      // If profile update fails and we uploaded a new avatar, try to clean it up
-      if (avatarUpdated && newAvatarUrl && !newAvatarUrl.startsWith('icon:')) {
-        const newFilePath = extractFilePathFromUrl(newAvatarUrl)
-        if (newFilePath) {
-                                setTimeout(async () => {
-             try {
-               await deleteStorageFile('profile-images', newFilePath)
-            } catch (cleanupError) {
-              console.warn('Failed to cleanup new avatar after profile update failure:', cleanupError)
-            }
-          }, 1000)
-        }
-      }
-      
-      throw new Error('Failed to update your profile. Please try again.')
+      return { success: false, error: 'Failed to update your profile. Please try again.' }
     }
 
-    // 4. Memory notification for changes [[## User Request for Detailed Email Notifications ##]]
-    // This ensures that all profile changes are tracked with detailed information about what happened
-    const changeDetails = []
-    if (currentProfile.username !== username.toLowerCase().trim()) {
-      changeDetails.push(`username changed from "${currentProfile.username}" to "${username.toLowerCase().trim()}"`)
-    }
-    if (avatarUpdated) {
-      const avatarChangeType = newAvatarUrl?.startsWith('icon:') ? 'icon selection' : 'image upload'
-      changeDetails.push(`avatar updated via ${avatarChangeType}`)
-    }
-    if (changeDetails.length > 0) {
-      const changeLog = `Profile updated: ${changeDetails.join(', ')}`
-      console.log(`[PROFILE_UPDATE] User ${user.id}: ${changeLog}`)
-      
-      // This detailed logging ensures responsibility and traceability for all profile changes
-      // as requested in the user's memory about including detailed information in all notifications
+    if (avatarUpdated && oldAvatarUrl && !oldAvatarUrl.startsWith('icon:') && !oldAvatarUrl.startsWith('data:')) {
+      const oldFilePath = extractFilePathFromUrl(oldAvatarUrl)
+      if (oldFilePath) {
+        void deleteStorageFile('profile-images', oldFilePath)
+      }
     }
 
-    // 5. Revalidate paths to show updated data
-    revalidatePath('/dashboard')
-    if (username) {
-      revalidatePath(`/wishlist/${username.toLowerCase().trim()}`)
+    if (sentBackground && oldBackgroundUrl && oldBackgroundUrl !== (newBackgroundUrl || '') && !oldBackgroundUrl.startsWith('data:')) {
+      const oldFilePath = extractBackgroundFilePathFromUrl(oldBackgroundUrl)
+      if (oldFilePath) {
+        void deleteStorageFile('background-images', oldFilePath)
+      }
     }
-    
-    return { 
+
+    await revalidateOwnerWishlist(user.id)
+    if (currentProfile.username && currentProfile.username !== nextUsername) {
+      try {
+        revalidatePath(`/wishlist/${currentProfile.username}`)
+      } catch (error) {
+        console.error('Failed to revalidate previous wishlist URL:', error)
+      }
+    }
+
+    return {
       success: true,
       message: avatarUpdated ? 'Profile and avatar updated successfully!' : 'Profile updated successfully!',
-      data: updateData
     }
-
   } catch (error) {
-    // Enhanced error logging with more context
-    console.error('Profile update error:', {
-      userId: user.id,
-      error: error instanceof Error ? error.message : 'Unknown error',
-      formData: {
-        username,
-        fullName,
-        wishlistColorPalette,
-        wishlistDescription,
-        hasNewAvatar: !!newAvatarUrl
-      }
-    })
-
-    // Re-throw the error for the client to handle
-    throw error
+    console.error('Profile update error:', error)
+    return { success: false, error: profileUpdateErrorMessage(error) }
   }
 } 

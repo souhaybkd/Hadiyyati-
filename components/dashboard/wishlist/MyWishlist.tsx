@@ -613,19 +613,29 @@ export function MyWishlist() {
         }
       }
       
-      await updateProfile(formData);
+      const result = await updateProfile(formData);
+      if (!result?.success) {
+        setProfileError(result?.error || 'Failed to update profile');
+        return;
+      }
       
-      // Manually update the profile state to avoid a full data reload
       setProfile(prev => prev ? { 
         ...prev, 
         ...profileForm,
+        username: profileForm.username.toLowerCase().trim(),
         avatar_url: avatarData ? (avatarData.type === 'icon' ? `icon:${avatarData.value}` : avatarData.value) : prev.avatar_url,
         background_image_url: backgroundData ? (backgroundData.type === 'upload' ? backgroundData.value : null) : prev.background_image_url
       } : null);
+      setAvatarData(null);
+      setBackgroundData(null);
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to update profile';
-      setProfileError(errorMessage);
+      setProfileError(
+        errorMessage.includes('Server Components render') || errorMessage.includes('digest')
+          ? 'Failed to update your profile. Please try again.'
+          : errorMessage
+      );
       console.error('Error updating profile:', err);
     } finally {
       setIsSavingProfile(false);

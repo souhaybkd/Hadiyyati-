@@ -73,10 +73,19 @@ export function ProfileSettings() {
             form.append('username', formData.username);
             form.append('full_name', formData.full_name);
             
-            await updateProfile(form);
-            setSuccess("Profile updated successfully!");
+            const result = await updateProfile(form);
+            if (!result?.success) {
+                setError(result?.error || "Failed to update profile.");
+                return;
+            }
+            setSuccess(result.message || "Profile updated successfully!");
         } catch (err: any) {
-            setError(err.message || "Failed to update profile.");
+            const message = err?.message || "Failed to update profile.";
+            setError(
+              message.includes('Server Components render') || message.includes('digest')
+                ? 'Failed to update your profile. Please try again.'
+                : message
+            );
         } finally {
             setIsSaving(false);
         }
