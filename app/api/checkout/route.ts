@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getEnabledStripeClient } from '@/lib/stripe'
+import { STRIPE_SHIPPING_ALLOWED_COUNTRIES } from '@/lib/stripe-shipping-countries'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 
 export async function POST(request: NextRequest) {
@@ -154,7 +155,7 @@ export async function POST(request: NextRequest) {
       customer_email: buyerEmail,
       billing_address_collection: 'required',
       shipping_address_collection: {
-        allowed_countries: ['US', 'CA', 'GB', 'AU', 'DE', 'FR', 'ES', 'IT', 'NL', 'BE', 'SE', 'DK', 'NO', 'FI'],
+        allowed_countries: STRIPE_SHIPPING_ALLOWED_COUNTRIES,
       },
     })
     
