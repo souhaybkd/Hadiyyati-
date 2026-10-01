@@ -44,7 +44,7 @@ type PaymentMethod = 'stripe' | 'whish'
 
 function CheckoutContent() {
   const { cartItems, removeFromCart, isHydrated } = useCart()
-  const { t, direction } = useLanguage()
+  const { t, direction, language } = useLanguage()
   const router = useRouter()
   const searchParams = useSearchParams()
   const [loading, setLoading] = useState(false)
@@ -222,20 +222,25 @@ function CheckoutContent() {
           isGift: form.isGift,
           customerEmail: isLoggedIn === false ? form.guestEmail.trim() : undefined,
           customerName: isLoggedIn === false ? form.guestName.trim() : undefined,
+          language,
         }),
       })
 
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to create checkout session')
+        throw new Error(
+          data.errorKey
+            ? t(data.errorKey, data.errorVars)
+            : (data.error || t('checkout.errSession'))
+        )
       }
 
       // Redirect to the hosted payment page (Stripe Checkout / Whish collect URL)
       if (data.url) {
         window.location.href = data.url
       } else {
-        throw new Error('Payment provider did not return a redirect URL')
+        throw new Error(t('checkout.errNoRedirect'))
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : t('common.error'))
@@ -312,8 +317,8 @@ function CheckoutContent() {
               <div className="flex flex-wrap gap-2">
                 {wishlistOwners.map((ownerName, index) => (
                   <Badge key={index} variant="secondary" className="px-3 py-1 text-sm">
-                    <User className="h-4 w-4 mr-1" />
-                    {ownerName}
+                    <User className="h-4 w-4 me-1" />
+                    <span dir="auto">{ownerName}</span>
                   </Badge>
                 ))}
               </div>
@@ -347,15 +352,15 @@ function CheckoutContent() {
                       </div>
                     )}
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-medium truncate">{item.title}</h3>
+                      <h3 dir="auto" className="font-medium truncate">{item.title}</h3>
                       {item.wishlist_owner_name && (
                         <p className="text-sm text-primary font-medium mb-1">
-                          <Gift className="h-3 w-3 inline mr-1" />
+                          <Gift className="h-3 w-3 inline me-1" />
                           {t('checkout.giftFor', { name: item.wishlist_owner_name })}
                         </p>
                       )}
                       {item.description && (
-                        <p className="text-sm text-muted-foreground line-clamp-2">
+                        <p dir="auto" className="text-sm text-muted-foreground line-clamp-2">
                           {item.description}
                         </p>
                       )}
@@ -367,6 +372,7 @@ function CheckoutContent() {
                     <Button
                       variant="ghost"
                       size="sm"
+                      aria-label={t('cart.remove')}
                       onClick={() => removeFromCart(item.id)}
                       className="text-destructive hover:text-destructive"
                     >
@@ -389,7 +395,7 @@ function CheckoutContent() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center gap-2">
                   <input
                     type="checkbox"
                     id="isGift"
@@ -405,12 +411,13 @@ function CheckoutContent() {
                   <div className="space-y-4 p-4 bg-muted/50 rounded-lg">
                     <div className="space-y-2">
                       <Label htmlFor="customMessage">
-                        <MessageSquare className="h-4 w-4 inline mr-2" />
+                        <MessageSquare className="h-4 w-4 inline me-2" />
                         {t('checkout.yourMessage')}
                       </Label>
                       <Textarea
                         id="customMessage"
                         name="customMessage"
+                        dir="auto"
                         value={form.customMessage}
                         onChange={handleInputChange}
                         placeholder={t('checkout.messagePh')}
@@ -439,12 +446,13 @@ function CheckoutContent() {
                 {!form.isGift && (
                   <div className="space-y-2">
                     <Label htmlFor="customMessage">
-                      <MessageSquare className="h-4 w-4 inline mr-2" />
+                      <MessageSquare className="h-4 w-4 inline me-2" />
                       {t('checkout.personalNote')}
                     </Label>
                     <Textarea
                       id="customMessage"
                       name="customMessage"
+                      dir="auto"
                       value={form.customMessage}
                       onChange={handleInputChange}
                       placeholder={t('checkout.personalNotePh')}
@@ -496,6 +504,7 @@ function CheckoutContent() {
                         id="guestName"
                         name="guestName"
                         type="text"
+                        dir="auto"
                         placeholder={t('checkout.yourNamePh')}
                         value={form.guestName}
                         onChange={handleInputChange}
@@ -504,14 +513,14 @@ function CheckoutContent() {
                     </div>
                     <div className="space-y-1">
                       <Label htmlFor="guestEmail">
-                        <Mail className="h-4 w-4 inline mr-2" />
+                        <Mail className="h-4 w-4 inline me-2" />
                         {t('checkout.email')}
                       </Label>
                       <Input
                         id="guestEmail"
                         name="guestEmail"
                         type="email"
-                        placeholder="you@example.com"
+                        placeholder={t('checkout.emailPh')}
                         value={form.guestEmail}
                         onChange={handleInputChange}
                         autoComplete="email"

@@ -26,7 +26,7 @@ export function CartSidebar() {
 
   return (
     <Sheet open={isCartOpen} onOpenChange={closeCart}>
-      <SheetContent className="flex w-full flex-col pr-0 sm:max-w-lg">
+      <SheetContent className="flex w-full flex-col sm:max-w-lg">
         <SheetHeader className="px-6">
           <SheetTitle>{t('cart.title')}</SheetTitle>
         </SheetHeader>
@@ -49,13 +49,13 @@ export function CartSidebar() {
                     )}
                   </div>
                   <div>
-                    <p className="font-medium line-clamp-1">{item.title}</p>
+                    <p dir="auto" className="font-medium line-clamp-1">{item.title}</p>
                     <p className="text-sm text-muted-foreground">
                       ${item.price || 0}
                     </p>
                   </div>
                 </div>
-                <Button variant="ghost" size="icon" onClick={() => removeFromCart(item.id)}>
+                <Button variant="ghost" size="icon" aria-label={t('cart.remove')} onClick={() => removeFromCart(item.id)}>
                   <Trash2 className="h-4 w-4 text-muted-foreground" />
                 </Button>
               </div>

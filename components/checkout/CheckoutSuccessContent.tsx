@@ -236,7 +236,7 @@ export function CheckoutSuccessContent({
                     <div className="flex items-center gap-3">
                       <Gift className="h-5 w-5 text-muted-foreground" />
                       <div>
-                        <p className="font-medium">{item.description}</p>
+                        <p dir="auto" className="font-medium">{item.description}</p>
                         <p className="text-sm text-muted-foreground">{t('success.qty', { n: item.quantity })}</p>
                       </div>
                     </div>
@@ -281,7 +281,7 @@ export function CheckoutSuccessContent({
                       <p className="text-sm text-muted-foreground mb-1">
                         {isGift ? t('success.giftMessage') : t('success.personalNote')}
                       </p>
-                      <p className="text-sm">{customMessage}</p>
+                      <p dir="auto" className="text-sm">{customMessage}</p>
                     </div>
                   </div>
                 </div>

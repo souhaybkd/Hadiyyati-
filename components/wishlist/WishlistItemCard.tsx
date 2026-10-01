@@ -54,9 +54,9 @@ export function WishlistItemCard({ item, profile, palette }: WishlistItemCardPro
             </div>
           )}
           {item.is_purchased && (
-            <div className="absolute top-4 right-4">
+            <div className="absolute top-4 end-4">
               <Badge className="bg-green-500 text-white">
-                <Gift className="h-3 w-3 mr-1" />
+                <Gift className="h-3 w-3 me-1" />
                 {t('wishlist.purchased')}
               </Badge>
             </div>
@@ -65,7 +65,7 @@ export function WishlistItemCard({ item, profile, palette }: WishlistItemCardPro
 
         {/* Content */}
         <div className="p-6">
-          <h3 className="font-semibold text-lg text-gray-900 mb-2 line-clamp-2">
+          <h3 dir="auto" className="font-semibold text-lg text-gray-900 mb-2 line-clamp-2">
             {item.title}
           </h3>
           
@@ -76,7 +76,7 @@ export function WishlistItemCard({ item, profile, palette }: WishlistItemCardPro
           )}
           
           {item.description && (
-            <p className="text-gray-600 text-sm mb-4 line-clamp-3">
+            <p dir="auto" className="text-gray-600 text-sm mb-4 line-clamp-3">
               {item.description}
             </p>
           )}

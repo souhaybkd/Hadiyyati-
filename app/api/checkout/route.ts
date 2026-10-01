@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
     } catch (configError) {
       console.error('❌ Stripe unavailable:', configError)
       return NextResponse.json(
-        { error: 'Stripe payments are currently unavailable.' },
+        { error: 'Stripe payments are currently unavailable.', errorKey: 'checkout.errUnavailable' },
         { status: 400 }
       )
     }
@@ -44,12 +44,13 @@ export async function POST(request: NextRequest) {
     }
 
     const { items, customMessage, isGift, customerEmail, customerName } = requestBody
+    const language = requestBody.language === 'ar' ? 'ar' : 'en'
 
     // Determine the buyer's email (account email or guest-provided email).
     const buyerEmail: string = (user?.email || customerEmail || '').trim()
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(buyerEmail)) {
       return NextResponse.json(
-        { error: 'A valid email address is required to complete your purchase.' },
+        { error: 'A valid email address is required to complete your purchase.', errorKey: 'checkout.validEmail' },
         { status: 400 }
       )
     }
@@ -62,7 +63,7 @@ export async function POST(request: NextRequest) {
 
     if (!items || items.length === 0) {
       console.error('❌ No items provided in request')
-      return NextResponse.json({ error: 'No items provided' }, { status: 400 })
+      return NextResponse.json({ error: 'No items provided', errorKey: 'checkout.cartEmptyError' }, { status: 400 })
     }
 
     // Validate items structure
@@ -72,7 +73,8 @@ export async function POST(request: NextRequest) {
       if (!item.title || typeof item.price !== 'number' || item.price <= 0) {
         console.error(`❌ Invalid item at index ${i}:`, item)
         return NextResponse.json({ 
-          error: `Invalid item data at index ${i}. Missing title or invalid price.` 
+          error: `Invalid item data at index ${i}. Missing title or invalid price.`,
+          errorKey: 'checkout.errInvalidItem',
         }, { status: 400 })
       }
     }
@@ -90,7 +92,8 @@ export async function POST(request: NextRequest) {
       if (itemsError) {
         console.error('❌ Error checking wishlist items:', itemsError)
         return NextResponse.json({ 
-          error: 'Failed to validate items' 
+          error: 'Failed to validate items',
+          errorKey: 'checkout.errValidate',
         }, { status: 500 })
       }
 
@@ -98,7 +101,9 @@ export async function POST(request: NextRequest) {
       if (purchasedItems.length > 0) {
         console.error('❌ Some items are already marked as purchased:', purchasedItems.map(i => i.title))
         return NextResponse.json({ 
-          error: `Cannot purchase: ${purchasedItems.map(i => i.title).join(', ')} ${purchasedItems.length === 1 ? 'is' : 'are'} already marked as purchased.` 
+          error: `Cannot purchase: ${purchasedItems.map(i => i.title).join(', ')} ${purchasedItems.length === 1 ? 'is' : 'are'} already marked as purchased.`,
+          errorKey: 'checkout.errPurchased',
+          errorVars: { titles: purchasedItems.map(i => i.title).join(', ') },
         }, { status: 400 })
       }
     }
@@ -119,9 +124,11 @@ export async function POST(request: NextRequest) {
           currency: 'usd',
           product_data: {
             name: item.title,
-            description: item.wishlist_owner_name 
-              ? `Gift to ${item.wishlist_owner_name}` 
-              : 'Gift from hadiyyati',
+            description: item.wishlist_owner_name
+              ? (language === 'ar'
+                  ? `هدية إلى ${item.wishlist_owner_name}`
+                  : `Gift to ${item.wishlist_owner_name}`)
+              : (language === 'ar' ? 'هدية من هديتي' : 'Gift from hadiyyati'),
             images: item.image_url ? [item.image_url] : [],
           },
           unit_amount: Math.round(item.price * 100), // Convert to cents
@@ -152,6 +159,8 @@ export async function POST(request: NextRequest) {
       success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/checkout`,
       metadata,
+      // Stripe Checkout has no Arabic locale. English is explicit; Arabic follows the browser.
+      locale: language === 'en' ? 'en' : 'auto',
       customer_email: buyerEmail,
       billing_address_collection: 'required',
       shipping_address_collection: {
@@ -182,6 +191,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { 
           error: `Stripe error: ${stripeError.message}`,
+          errorKey: 'checkout.errSession',
           details: process.env.NODE_ENV === 'development' ? stripeError : undefined
         },
         { status: 500 }
@@ -191,6 +201,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { 
         error: 'Failed to create checkout session',
+        errorKey: 'checkout.errSession',
         details: process.env.NODE_ENV === 'development' ? error : undefined
       },
       { status: 500 }

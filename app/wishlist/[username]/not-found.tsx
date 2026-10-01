@@ -4,13 +4,17 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Heart, Home } from 'lucide-react'
+import { LanguageToggle } from '@/components/shared/LanguageToggle'
 import { useLanguage } from '@/lib/contexts/LanguageContext'
 
 export default function NotFound() {
   const { t } = useLanguage()
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 flex items-center justify-center p-4 relative">
+      <div className="absolute top-4 end-4">
+        <LanguageToggle variant="muted" />
+      </div>
       <Card className="w-full max-w-md text-center">
         <CardHeader>
           <div className="w-16 h-16 bg-gray-100 rounded-full mx-auto mb-4 flex items-center justify-center">

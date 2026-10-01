@@ -4,6 +4,21 @@ import { createSupabaseServiceClient } from '@/lib/supabase-service'
 import { getWhishConfig, isWhishUsable } from '@/lib/payment-config'
 import { createWhishPayment, formatWhishAmount, WhishError } from '@/lib/whish'
 
+function whishBuyerErrorKey(code: string): string {
+  switch (code) {
+    case 'currency.not_supported':
+    case 'invalid_currency':
+      return 'checkout.errCurrency'
+    case 'sales.exceeded_daily_limit':
+    case 'sales.exceeded_monthly_limit':
+      return 'checkout.errLimit'
+    case 'emoji.not_supported':
+      return 'checkout.errEmoji'
+    default:
+      return 'checkout.errWhishUnavailable'
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     if (!process.env.NEXT_PUBLIC_SITE_URL) {
@@ -14,7 +29,7 @@ export async function POST(request: NextRequest) {
     const whishConfig = await getWhishConfig()
     if (!isWhishUsable(whishConfig)) {
       return NextResponse.json(
-        { error: 'Whish payments are currently unavailable.' },
+        { error: 'Whish payments are currently unavailable.', errorKey: 'checkout.errUnavailable' },
         { status: 400 }
       )
     }
@@ -38,7 +53,7 @@ export async function POST(request: NextRequest) {
     const { items, customMessage, isGift, customerEmail, customerName } = requestBody
 
     if (!items || items.length === 0) {
-      return NextResponse.json({ error: 'No items provided' }, { status: 400 })
+      return NextResponse.json({ error: 'No items provided', errorKey: 'checkout.cartEmptyError' }, { status: 400 })
     }
 
     // Determine the buyer's email: signed-in users use their account email;
@@ -47,7 +62,7 @@ export async function POST(request: NextRequest) {
     const emailIsValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(buyerEmail)
     if (!emailIsValid) {
       return NextResponse.json(
-        { error: 'A valid email address is required to complete your purchase.' },
+        { error: 'A valid email address is required to complete your purchase.', errorKey: 'checkout.validEmail' },
         { status: 400 }
       )
     }
@@ -57,7 +72,7 @@ export async function POST(request: NextRequest) {
       const item = items[i]
       if (!item.title || typeof item.price !== 'number' || item.price <= 0) {
         return NextResponse.json(
-          { error: `Invalid item data at index ${i}. Missing title or invalid price.` },
+          { error: `Invalid item data at index ${i}. Missing title or invalid price.`, errorKey: 'checkout.errInvalidItem' },
           { status: 400 }
         )
       }
@@ -72,7 +87,7 @@ export async function POST(request: NextRequest) {
         .in('id', itemIds)
 
       if (itemsError) {
-        return NextResponse.json({ error: 'Failed to validate items' }, { status: 500 })
+        return NextResponse.json({ error: 'Failed to validate items', errorKey: 'checkout.errValidate' }, { status: 500 })
       }
 
       const purchasedItems = wishlistItems?.filter((item) => item.is_purchased) || []
@@ -82,6 +97,8 @@ export async function POST(request: NextRequest) {
             error: `Cannot purchase: ${purchasedItems
               .map((i) => i.title)
               .join(', ')} ${purchasedItems.length === 1 ? 'is' : 'are'} already marked as purchased.`,
+            errorKey: 'checkout.errPurchased',
+            errorVars: { titles: purchasedItems.map((i) => i.title).join(', ') },
           },
           { status: 400 }
         )
@@ -100,7 +117,10 @@ export async function POST(request: NextRequest) {
       formatWhishAmount(amount, currency)
     } catch (amountError) {
       return NextResponse.json(
-        { error: amountError instanceof Error ? amountError.message : 'Invalid amount' },
+        {
+          error: amountError instanceof Error ? amountError.message : 'Invalid amount',
+          errorKey: 'checkout.errMinUsd',
+        },
         { status: 400 }
       )
     }
@@ -114,6 +134,7 @@ export async function POST(request: NextRequest) {
         {
           error:
             'Whish requires publicly reachable callback URLs. Set NEXT_PUBLIC_SITE_URL to a public domain (or a tunnel URL) to test Whish locally.',
+          errorKey: 'checkout.errWhishLocal',
         },
         { status: 400 }
       )
@@ -157,7 +178,7 @@ export async function POST(request: NextRequest) {
 
     if (insertError) {
       console.error('Failed to create whish_payments record:', insertError)
-      return NextResponse.json({ error: 'Failed to initialize payment' }, { status: 500 })
+      return NextResponse.json({ error: 'Failed to initialize payment', errorKey: 'checkout.errInit' }, { status: 500 })
     }
 
     // Create the Whish payment and get the collect URL. If Whish refuses, drop
@@ -191,12 +212,15 @@ export async function POST(request: NextRequest) {
     // holds the wording that is safe to show the buyer.
     if (error instanceof WhishError) {
       console.error('❌ Whish checkout error:', error.details)
-      return NextResponse.json({ error: error.message }, { status: 502 })
+      return NextResponse.json(
+        { error: error.message, errorKey: whishBuyerErrorKey(error.code) },
+        { status: 502 }
+      )
     }
 
     console.error('❌ Whish checkout error:', error)
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to create Whish payment' },
+      { error: error instanceof Error ? error.message : 'Failed to create Whish payment', errorKey: 'checkout.errSession' },
       { status: 500 }
     )
   }
