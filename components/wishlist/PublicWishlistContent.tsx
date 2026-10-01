@@ -27,7 +27,7 @@ export function PublicWishlistContent({
 
   return (
     <>
-    <header className="sticky top-0 z-20 border-b border-white/60 bg-white/80 backdrop-blur-sm">
+    <header dir="ltr" className="sticky top-0 z-20 border-b border-white/60 bg-white/80 backdrop-blur-sm">
       <div className="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between gap-3">
         <Link href="/" className="shrink-0">
           <Image
@@ -99,7 +99,7 @@ export function PublicWishlistContent({
         </div>
       )}
 
-      <footer className="mt-16 pt-8 border-t border-gray-200 text-center">
+      <footer dir="ltr" className="mt-16 pt-8 border-t border-gray-200 text-center">
         <p className="text-gray-500 text-sm">
           {t('wishlist.createOwn')}{' '}
           <Link href="/auth" className={cn('font-medium', selectedPalette.link)}>

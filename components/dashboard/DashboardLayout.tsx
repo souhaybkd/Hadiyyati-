@@ -76,7 +76,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
       <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
         <div className="hidden border-e bg-design-light border-design-gray-200 md:block md:sticky md:top-0 md:h-screen">
           <div className="flex h-full flex-col gap-2">
-            <div className="flex h-16 items-center justify-between border-b border-design-gray-200 px-4 lg:h-[60px] lg:px-6">
+            <div dir="ltr" className="flex h-16 items-center justify-between border-b border-design-gray-200 px-4 lg:h-[60px] lg:px-6">
               <Link href="/" className="flex items-center gap-2 font-semibold text-design-text-heading">
                 <Package2 className="h-6 w-6 text-design-primary" />
                 <span className="">hadiyyati</span>
@@ -92,7 +92,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
         <div className="flex flex-col">
-          <header className="flex h-16 items-center gap-4 border-b bg-design-light border-design-gray-200 px-4 lg:h-[60px] lg:px-6 md:hidden">
+          <header dir="ltr" className="flex h-16 items-center gap-4 border-b bg-design-light border-design-gray-200 px-4 lg:h-[60px] lg:px-6 md:hidden">
             <Sheet>
               <SheetTrigger asChild>
                 <Button
