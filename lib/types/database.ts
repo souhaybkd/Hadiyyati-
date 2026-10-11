@@ -229,6 +229,8 @@ export interface GiftStatistics {
 export interface GiftHistoryItem {
   id: string
   order: Order
+  /** ISO timestamp: order.created_at + payout hold period */
+  scheduled_payout_at: string
   items: OrderItem[]
   message?: GiftMessage
   receipt?: GiftReceipt

@@ -3,6 +3,7 @@
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { createSupabaseServiceClient } from '@/lib/supabase-service'
 import { revalidatePath } from 'next/cache'
+import { getScheduledPayoutDate } from '@/lib/payout-schedule'
 import type { 
   GiftHistoryItem, 
   GiftStatistics, 
@@ -72,9 +73,12 @@ export async function getGiftHistory(): Promise<GiftHistoryItem[]> {
         }
       }
 
+      const scheduledPayoutAt = getScheduledPayoutDate(order.created_at).toISOString()
+
       giftHistoryItems.push({
         id: order.id,
         order,
+        scheduled_payout_at: scheduledPayoutAt,
         items: order.order_items || [],
         message: order.gift_messages?.[0],
         receipt: order.gift_receipts?.[0],

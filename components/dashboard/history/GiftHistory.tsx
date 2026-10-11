@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { format } from 'date-fns'
+import { getScheduledPayoutDate, isScheduledPayoutReached } from '@/lib/payout-schedule'
 import {
   Card,
   CardContent,
@@ -290,9 +291,27 @@ export function GiftHistory({ initialData }: GiftHistoryProps) {
                           {gift.otherParty?.full_name || gift.otherParty?.username || 'Anonymous'}
                         </span>
                       </div>
-                      <p className="text-sm text-muted-foreground">
-                        {format(new Date(gift.order.created_at), 'PPP')}
-                      </p>
+                      <div className="text-sm text-muted-foreground space-y-0.5">
+                        <p>
+                          <span className="font-medium text-foreground/80">{t('dash.transactionDate')}:</span>{' '}
+                          {format(new Date(gift.order.created_at), 'PPP')}
+                        </p>
+                        <p>
+                          <span className="font-medium text-foreground/80">{t('dash.payoutDate')}:</span>{' '}
+                          {format(
+                            new Date(
+                              gift.scheduled_payout_at ??
+                                getScheduledPayoutDate(gift.order.created_at).toISOString()
+                            ),
+                            'PPP'
+                          )}
+                          {!isScheduledPayoutReached(gift.order.created_at) && (
+                            <Badge variant="outline" className="ms-2 text-xs">
+                              {t('dash.payoutScheduled')}
+                            </Badge>
+                          )}
+                        </p>
+                      </div>
                     </div>
                   </div>
 
