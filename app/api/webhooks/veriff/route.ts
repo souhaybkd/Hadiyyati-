@@ -1,45 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServiceClient } from '@/lib/supabase-service'
-import {
-  getVeriffConfig,
-  mapVeriffDecision,
-  verifyVeriffSignature,
-} from '@/lib/veriff'
+import { mapVeriffDecision } from '@/lib/veriff'
+import { resolveVeriffUserId, verifyVeriffWebhookRequest } from '@/lib/veriff-webhook'
 
 /**
  * Veriff decision webhook.
  * Configure Decision webhook URL in Veriff Customer Portal to:
  *   https://<your-domain>/api/webhooks/veriff
  *
- * Payload is authenticated via X-HMAC-SIGNATURE (HMAC-SHA256 of raw body).
+ * PEP/sanctions results use a separate URL — see watchlist-screening/route.ts.
  */
 export async function POST(request: NextRequest) {
-  const rawBody = await request.text()
+  const verified = await verifyVeriffWebhookRequest(request)
+  if (!verified.ok) return verified.response
 
-  let sharedSecretKey: string
-  try {
-    ;({ sharedSecretKey } = getVeriffConfig())
-  } catch (err) {
-    console.error('Veriff webhook not configured:', err)
-    return NextResponse.json({ error: 'Webhook not configured' }, { status: 500 })
-  }
-
-  const signature =
-    request.headers.get('x-hmac-signature') || request.headers.get('X-HMAC-SIGNATURE')
-
-  if (!verifyVeriffSignature(rawBody, signature, sharedSecretKey)) {
-    console.error('Veriff webhook signature verification failed')
-    return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
-  }
-
-  let payload: any
-  try {
-    payload = JSON.parse(rawBody)
-  } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
-  }
-
-  const verification = payload?.verification
+  const payload = verified.payload
+  const verification = payload?.verification as Record<string, unknown> | undefined
   if (!verification?.id) {
     return NextResponse.json({ error: 'Missing verification' }, { status: 400 })
   }
@@ -64,20 +40,7 @@ export async function POST(request: NextRequest) {
   const supabase = createSupabaseServiceClient()
   const now = new Date().toISOString()
 
-  // Prefer session id match; fall back to vendorData (user id)
-  let userId: string | null = null
-
-  const { data: bySession } = await supabase
-    .from('kyc_verifications')
-    .select('user_id')
-    .eq('veriff_session_id', sessionId)
-    .maybeSingle()
-
-  if (bySession?.user_id) {
-    userId = bySession.user_id
-  } else if (vendorData) {
-    userId = vendorData
-  }
+  const userId = await resolveVeriffUserId(supabase, sessionId, vendorData)
 
   if (!userId) {
     console.error('Veriff webhook: could not resolve user for session', sessionId)
@@ -111,6 +74,7 @@ export async function POST(request: NextRequest) {
   if (kycStatus === 'approved') {
     profileUpdate.kyc_verified_at =
       verification.decisionTime || verification.acceptanceTime || now
+    profileUpdate.watchlist_cleared = false
   }
 
   const { error: profileError } = await supabase

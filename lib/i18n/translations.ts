@@ -369,6 +369,12 @@ export const translations: Record<Language, Record<string, string>> = {
     'dash.kycPending': 'Verification in progress',
     'dash.kycDeclined': 'Verification declined',
     'dash.kycResubmit': 'Additional information needed',
+    'dash.watchlistPending': 'Sanctions screening in progress',
+    'dash.watchlistPendingDesc':
+      'Your identity is verified. We are running PEP and sanctions checks — this usually takes a moment.',
+    'dash.watchlistReview': 'Compliance review required',
+    'dash.watchlistReviewDesc':
+      'Your profile matched a sanctions or PEP list and must be reviewed before payouts can be enabled. Contact support if you need help.',
     'admin.platformMgmt': 'Platform Management',
     'admin.menu': 'Admin Menu',
     'auth.usernameFormat': 'Username can only contain letters, numbers, underscores, and hyphens',
@@ -827,6 +833,12 @@ export const translations: Record<Language, Record<string, string>> = {
     'dash.kycPending': 'التحقق قيد التنفيذ',
     'dash.kycDeclined': 'رُفض التحقق',
     'dash.kycResubmit': 'معلومات إضافية مطلوبة',
+    'dash.watchlistPending': 'فحص قوائم العقوبات قيد التنفيذ',
+    'dash.watchlistPendingDesc':
+      'تم التحقق من هويتك. نجري فحوصات PEP والعقوبات — يستغرق ذلك عادةً لحظات.',
+    'dash.watchlistReview': 'مراجعة امتثال مطلوبة',
+    'dash.watchlistReviewDesc':
+      'تطابق ملفك مع قائمة عقوبات أو PEP ويجب مراجعته قبل تفعيل المدفوعات. تواصل مع الدعم إذا احتجت مساعدة.',
     'admin.platformMgmt': 'إدارة المنصة',
     'admin.menu': 'قائمة الإدارة',
     'auth.usernameFormat': 'اسم المستخدم يقبل الحروف والأرقام والشرطة السفلية والواصلة فقط',

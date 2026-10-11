@@ -155,3 +155,30 @@ export function splitFullName(fullName?: string | null): {
     lastName: parts.slice(1).join(' '),
   }
 }
+
+/** GET /v1/sessions/{sessionId}/watchlist-screening — same shape as the watchlist webhook payload. */
+export async function fetchWatchlistScreening(
+  sessionId: string
+): Promise<Record<string, unknown> | null> {
+  const { apiKey, sharedSecretKey, baseUrl } = getVeriffConfig()
+  const signature = signVeriffPayload(sessionId, sharedSecretKey)
+
+  const res = await fetch(`${baseUrl}/v1/sessions/${sessionId}/watchlist-screening`, {
+    method: 'GET',
+    headers: {
+      'X-AUTH-CLIENT': apiKey,
+      'X-HMAC-SIGNATURE': signature,
+    },
+    cache: 'no-store',
+  })
+
+  if (res.status === 404) return null
+
+  const data = (await res.json().catch(() => null)) as Record<string, unknown> | null
+  if (!res.ok) {
+    console.error('Veriff fetch watchlist-screening failed:', res.status, data)
+    return null
+  }
+
+  return data
+}

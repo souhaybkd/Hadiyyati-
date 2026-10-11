@@ -30,6 +30,8 @@ export interface Profile {
   kyc_status?: KycStatus
   kyc_verified_at?: string | null
   kyc_session_id?: string | null
+  watchlist_review_status?: string | null
+  watchlist_cleared?: boolean
 }
 
 export interface KycVerification {
@@ -40,6 +42,12 @@ export interface KycVerification {
   decision_code?: number | null
   vendor_data: string
   raw_decision?: Record<string, unknown> | null
+  watchlist_review_status?: string | null
+  watchlist_total_hits?: number | null
+  watchlist_has_unacknowledged_changes?: boolean
+  watchlist_monitor_status?: string | null
+  watchlist_screened_at?: string | null
+  raw_watchlist?: Record<string, unknown> | null
   created_at: string
   updated_at: string
 }

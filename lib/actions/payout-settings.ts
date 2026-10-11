@@ -49,7 +49,7 @@ export async function savePayoutSettings(formData: FormData) {
   try {
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('kyc_status')
+      .select('kyc_status, watchlist_cleared')
       .eq('id', user.id)
       .single()
 
@@ -61,6 +61,12 @@ export async function savePayoutSettings(formData: FormData) {
     if (profile?.kyc_status !== 'approved') {
       throw new Error(
         'Identity verification is required before saving payout settings. Please complete KYC first.'
+      )
+    }
+
+    if (!profile?.watchlist_cleared) {
+      throw new Error(
+        'PEP and sanctions screening must be completed before saving payout settings. This usually finishes shortly after identity verification.'
       )
     }
 

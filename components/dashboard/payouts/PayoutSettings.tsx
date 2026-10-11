@@ -8,7 +8,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useState, useEffect, useCallback } from "react";
 import { Loader2, Trash2, ShieldCheck, ShieldAlert } from "lucide-react";
 import { getUserPayoutSettings, savePayoutSettings, deletePayoutSettings } from "@/lib/actions/payout-settings";
-import { getMyKycStatus, startVeriffSession } from "@/lib/actions/veriff";
+import { getMyKycStatus, refreshMyWatchlistScreening, startVeriffSession } from "@/lib/actions/veriff";
 import { PayoutSettings as PayoutSettingsType, KycStatus } from "@/lib/types/database";
 import { CheckCircle } from "lucide-react";
 import { useSearchParams } from "next/navigation";
@@ -33,11 +33,18 @@ export function PayoutSettings() {
     const [existingSettings, setExistingSettings] = useState<PayoutSettingsType | null>(null);
     const [kycStatus, setKycStatus] = useState<KycStatus>('unverified');
     const [kycVerifiedAt, setKycVerifiedAt] = useState<string | null>(null);
+    const [watchlistCleared, setWatchlistCleared] = useState(false);
+    const [watchlistReviewStatus, setWatchlistReviewStatus] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
     
     const currentMethod = PayoutMethods.find(m => m.id === selectedMethod);
     const isApproved = kycStatus === 'approved';
+    const canSavePayouts = isApproved && watchlistCleared;
+    const screeningPending =
+      isApproved && !watchlistCleared && watchlistReviewStatus !== 'potential_match';
+    const screeningBlocked =
+      isApproved && !watchlistCleared && watchlistReviewStatus === 'potential_match';
     const returnedFromKyc = searchParams?.get('kyc') === 'done';
 
     const flashSuccess = (message: string) => {
@@ -61,6 +68,8 @@ export function PayoutSettings() {
 
             setKycStatus(kyc.kyc_status);
             setKycVerifiedAt(kyc.kyc_verified_at);
+            setWatchlistCleared(kyc.watchlist_cleared);
+            setWatchlistReviewStatus(kyc.watchlist_review_status);
         } catch (error) {
             console.error('Error loading payout settings:', error);
             setError(error instanceof Error ? error.message : 'Failed to load payout settings');
@@ -73,28 +82,47 @@ export function PayoutSettings() {
         loadData();
     }, [loadData]);
 
-    // After returning from Veriff, refresh a few times while decision webhook catches up
+    // Poll while waiting for Veriff decision and PEP/sanctions screening
     useEffect(() => {
-        if (!returnedFromKyc || kycStatus === 'approved') return;
+        const waitingForDecision = returnedFromKyc && kycStatus !== 'approved' && kycStatus !== 'declined';
+        const waitingForScreening = isApproved && !watchlistCleared;
+
+        if (!waitingForDecision && !waitingForScreening) return;
 
         let attempts = 0;
-        const maxAttempts = 6;
+        const maxAttempts = 12;
         const interval = setInterval(async () => {
             attempts += 1;
             try {
                 const kyc = await getMyKycStatus();
                 setKycStatus(kyc.kyc_status);
                 setKycVerifiedAt(kyc.kyc_verified_at);
-                if (kyc.kyc_status === 'approved' || kyc.kyc_status === 'declined' || attempts >= maxAttempts) {
-                    clearInterval(interval);
+                setWatchlistCleared(kyc.watchlist_cleared);
+                setWatchlistReviewStatus(kyc.watchlist_review_status);
+
+                if (kyc.kyc_status === 'approved' && !kyc.watchlist_cleared) {
+                    const screening = await refreshMyWatchlistScreening();
+                    if (screening.watchlist_cleared !== undefined) {
+                        setWatchlistCleared(screening.watchlist_cleared);
+                    }
+                    if (screening.watchlist_review_status !== undefined) {
+                        setWatchlistReviewStatus(screening.watchlist_review_status);
+                    }
                 }
+
+                const done =
+                    (kyc.kyc_status === 'approved' && kyc.watchlist_cleared) ||
+                    kyc.kyc_status === 'declined' ||
+                    attempts >= maxAttempts;
+
+                if (done) clearInterval(interval);
             } catch {
                 if (attempts >= maxAttempts) clearInterval(interval);
             }
         }, 2500);
 
         return () => clearInterval(interval);
-    }, [returnedFromKyc, kycStatus]);
+    }, [returnedFromKyc, kycStatus, isApproved, watchlistCleared]);
 
     const handleStartKyc = async () => {
         setStartingKyc(true);
@@ -215,8 +243,10 @@ export function PayoutSettings() {
         {/* KYC status panel */}
         <div
           className={`p-4 border rounded-md ${
-            isApproved
+            canSavePayouts
               ? 'bg-green-50 border-green-200'
+              : screeningBlocked
+                ? 'bg-red-50 border-red-200'
               : kycStatus === 'declined'
                 ? 'bg-red-50 border-red-200'
                 : 'bg-amber-50 border-amber-200'
@@ -224,10 +254,10 @@ export function PayoutSettings() {
         >
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex items-start gap-3">
-              {isApproved ? (
+              {canSavePayouts ? (
                 <ShieldCheck className="h-5 w-5 text-green-700 mt-0.5 shrink-0" />
               ) : (
-                <ShieldAlert className="h-5 w-5 text-amber-700 mt-0.5 shrink-0" />
+                <ShieldAlert className={`h-5 w-5 mt-0.5 shrink-0 ${screeningBlocked ? 'text-red-700' : 'text-amber-700'}`} />
               )}
               <div>
                 <p
@@ -239,7 +269,9 @@ export function PayoutSettings() {
                         : 'text-amber-900'
                   }`}
                 >
-                  {isApproved && t('dash.kycVerified')}
+                  {canSavePayouts && t('dash.kycVerified')}
+                  {screeningPending && t('dash.watchlistPending')}
+                  {screeningBlocked && t('dash.watchlistReview')}
                   {kycStatus === 'unverified' && t('dash.kycRequired')}
                   {kycStatus === 'pending' && t('dash.kycPending')}
                   {kycStatus === 'declined' && t('dash.kycDeclined')}
@@ -254,10 +286,12 @@ export function PayoutSettings() {
                         : 'text-amber-700'
                   }`}
                 >
-                  {isApproved &&
+                  {canSavePayouts &&
                     (kycVerifiedAt
                       ? `Verified on ${new Date(kycVerifiedAt).toLocaleDateString()}`
                       : 'You can now save payout details.')}
+                  {screeningPending && t('dash.watchlistPendingDesc')}
+                  {screeningBlocked && t('dash.watchlistReviewDesc')}
                   {kycStatus === 'unverified' &&
                     'Complete identity verification before you can save payout settings.'}
                   {kycStatus === 'pending' &&
@@ -317,7 +351,7 @@ export function PayoutSettings() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-8">
-          <fieldset disabled={!isApproved} className={!isApproved ? 'opacity-60' : undefined}>
+          <fieldset disabled={!canSavePayouts} className={!canSavePayouts ? 'opacity-60' : undefined}>
             <div>
                 <Label className="text-base font-semibold">Select Payout Method</Label>
                 <RadioGroup value={selectedMethod} onValueChange={setSelectedMethod} className="mt-4 grid md:grid-cols-2 gap-4">
@@ -345,7 +379,7 @@ export function PayoutSettings() {
                                     placeholder={field.placeholder}
                                     value={formData[field.name] || ''}
                                     onChange={(e) => handleInputChange(field.name, e.target.value)}
-                                    required={isApproved}
+                                    required={canSavePayouts}
                                 />
                             </div>
                         ))}
@@ -355,10 +389,12 @@ export function PayoutSettings() {
           </fieldset>
           
           <div className="flex gap-2">
-            <Button type="submit" disabled={saving || !isApproved} className="flex-1">
+            <Button type="submit" disabled={saving || !canSavePayouts} className="flex-1">
               {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              {!isApproved
-                ? 'Verify identity to save'
+              {!canSavePayouts
+                ? isApproved
+                  ? 'Waiting for sanctions screening'
+                  : 'Verify identity to save'
                 : saving
                   ? 'Saving...'
                   : existingSettings

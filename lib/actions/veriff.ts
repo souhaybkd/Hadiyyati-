@@ -2,7 +2,14 @@
 
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { createSupabaseServiceClient } from '@/lib/supabase-service'
-import { createVeriffSession, splitFullName, VeriffConfigError } from '@/lib/veriff'
+import {
+  createVeriffSession,
+  fetchWatchlistScreening,
+  splitFullName,
+  VeriffConfigError,
+} from '@/lib/veriff'
+import { persistWatchlistScreening } from '@/lib/veriff-watchlist-persist'
+import type { WatchlistScreeningPayload } from '@/lib/veriff-watchlist'
 import type { KycStatus } from '@/lib/types/database'
 import { redirect } from 'next/navigation'
 
@@ -10,6 +17,8 @@ export interface UserKycInfo {
   kyc_status: KycStatus
   kyc_verified_at: string | null
   kyc_session_id: string | null
+  watchlist_review_status: string | null
+  watchlist_cleared: boolean
 }
 
 function isMissingKycSchema(error: unknown): boolean {
@@ -32,6 +41,8 @@ function isMissingKycSchema(error: unknown): boolean {
     blob.includes('kyc_verifications') ||
     blob.includes('kyc_status') ||
     blob.includes('kyc_session_id') ||
+    blob.includes('watchlist_cleared') ||
+    blob.includes('watchlist_review_status') ||
     blob.includes('schema cache')
   )
 }
@@ -66,7 +77,9 @@ export async function getMyKycStatus(): Promise<UserKycInfo> {
 
   const { data, error } = await supabase
     .from('profiles')
-    .select('kyc_status, kyc_verified_at, kyc_session_id')
+    .select(
+      'kyc_status, kyc_verified_at, kyc_session_id, watchlist_review_status, watchlist_cleared'
+    )
     .eq('id', user.id)
     .single()
 
@@ -77,12 +90,16 @@ export async function getMyKycStatus(): Promise<UserKycInfo> {
         kyc_status: 'unverified',
         kyc_verified_at: null,
         kyc_session_id: null,
+        watchlist_review_status: null,
+        watchlist_cleared: false,
       }
     }
     return {
       kyc_status: 'unverified',
       kyc_verified_at: null,
       kyc_session_id: null,
+      watchlist_review_status: null,
+      watchlist_cleared: false,
     }
   }
 
@@ -90,6 +107,81 @@ export async function getMyKycStatus(): Promise<UserKycInfo> {
     kyc_status: (data?.kyc_status as KycStatus) || 'unverified',
     kyc_verified_at: data?.kyc_verified_at ?? null,
     kyc_session_id: data?.kyc_session_id ?? null,
+    watchlist_review_status: data?.watchlist_review_status ?? null,
+    watchlist_cleared: Boolean(data?.watchlist_cleared),
+  }
+}
+
+/**
+ * Pull latest PEP/sanctions result from Veriff when the webhook is delayed.
+ * Safe to call repeatedly while identity is approved and screening is pending.
+ */
+export async function refreshMyWatchlistScreening(): Promise<{
+  watchlist_cleared?: boolean
+  watchlist_review_status?: string | null
+  error?: string
+}> {
+  const supabase = await createSupabaseServerClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    redirect('/auth')
+  }
+
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('kyc_status, kyc_session_id, watchlist_cleared')
+    .eq('id', user.id)
+    .single()
+
+  if (profileError || !profile?.kyc_session_id) {
+    return { error: 'No verification session to screen' }
+  }
+
+  if (profile.kyc_status !== 'approved') {
+    return { error: 'Identity verification is not approved yet' }
+  }
+
+  if (profile.watchlist_cleared) {
+    return {
+      watchlist_cleared: true,
+      watchlist_review_status: null,
+    }
+  }
+
+  try {
+    const data = await fetchWatchlistScreening(profile.kyc_session_id)
+    if (!data?.reviewStatus) {
+      return { watchlist_cleared: false, watchlist_review_status: null }
+    }
+
+    const service = createSupabaseServiceClient()
+    const result = await persistWatchlistScreening(service, {
+      sessionId: profile.kyc_session_id,
+      userId: user.id,
+      vendorData: user.id,
+      payload: data as WatchlistScreeningPayload & Record<string, unknown>,
+    })
+
+    if (result.error) {
+      return { error: result.error }
+    }
+
+    const { data: updated } = await supabase
+      .from('profiles')
+      .select('watchlist_cleared, watchlist_review_status')
+      .eq('id', user.id)
+      .single()
+
+    return {
+      watchlist_cleared: Boolean(updated?.watchlist_cleared),
+      watchlist_review_status: updated?.watchlist_review_status ?? null,
+    }
+  } catch (error) {
+    console.error('Error refreshing watchlist screening:', error)
+    return { error: 'Could not load sanctions screening status' }
   }
 }
 
@@ -113,7 +205,7 @@ export async function startVeriffSession(): Promise<{ url?: string; error?: stri
   try {
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('full_name, email, kyc_status')
+      .select('full_name, email, kyc_status, watchlist_cleared')
       .eq('id', user.id)
       .single()
 
@@ -128,7 +220,7 @@ export async function startVeriffSession(): Promise<{ url?: string; error?: stri
       return { error: 'Failed to load profile for verification' }
     }
 
-    if (profile?.kyc_status === 'approved') {
+    if (profile?.kyc_status === 'approved' && profile?.watchlist_cleared) {
       return { error: 'Identity already verified' }
     }
 
@@ -176,6 +268,8 @@ export async function startVeriffSession(): Promise<{ url?: string; error?: stri
       .update({
         kyc_status: 'pending',
         kyc_session_id: session.verification.id,
+        watchlist_review_status: null,
+        watchlist_cleared: false,
         updated_at: now,
       })
       .eq('id', user.id)
