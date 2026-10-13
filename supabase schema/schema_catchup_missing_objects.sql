@@ -43,6 +43,9 @@ create index if not exists payout_settings_user_id_idx on public.payout_settings
 
 -- 3) Missing columns -----------------------------------------------------------
 alter table public.orders          add column if not exists admin_notes text;
+alter table public.orders          add column if not exists payout_sent_at timestamptz;
+alter table public.orders          add column if not exists payout_sent_by uuid references public.profiles(id) on delete set null;
+alter table public.orders          add column if not exists payout_admin_note text;
 alter table public.wishlist_items  add column if not exists expected_payout numeric;
 
 -- 4) Expected payout functions -------------------------------------------------

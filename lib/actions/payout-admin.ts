@@ -57,6 +57,15 @@ function daysUntil(due: Date, from: Date = new Date()): number {
   return Math.ceil(ms / (1000 * 60 * 60 * 24))
 }
 
+function toErrorMessage(err: unknown, fallback: string): string {
+  if (err instanceof Error) return err.message
+  if (err && typeof err === 'object' && 'message' in err) {
+    const message = (err as { message: unknown }).message
+    if (typeof message === 'string' && message.trim()) return message
+  }
+  return fallback
+}
+
 export async function getPayoutQueueForAdmin(params?: {
   filter?: PayoutQueueFilter
   page?: number
@@ -103,7 +112,7 @@ export async function getPayoutQueueForAdmin(params?: {
         owner_id,
         payout_sent_at,
         payout_admin_note,
-        order_items(price, quantity, expected_payout),
+        order_items(price, quantity),
         owner:profiles!orders_owner_id_fkey(id, full_name, email, username, kyc_status, watchlist_cleared)
       `,
         { count: 'exact' }
@@ -189,17 +198,12 @@ export async function getPayoutQueueForAdmin(params?: {
       const isDue = isScheduledPayoutReached(order.created_at, now)
       const daysLeft = daysUntil(payoutDue, now)
 
-      const itemsList = (order.order_items as Array<{
-        price: number
-        quantity?: number
-        expected_payout?: number | null
-      }>) || []
+      const itemsList =
+        (order.order_items as Array<{ price: number; quantity?: number }>) || []
 
       const payoutAmount = itemsList.reduce((sum, item) => {
         const qty = item.quantity ?? 1
-        const unit =
-          item.expected_payout != null ? Number(item.expected_payout) : Number(item.price)
-        return sum + unit * qty
+        return sum + Number(item.price) * qty
       }, 0)
 
       const payout = receiverId ? payoutByUser.get(receiverId) : undefined
@@ -256,7 +260,7 @@ export async function getPayoutQueueForAdmin(params?: {
     console.error('getPayoutQueueForAdmin:', err)
     return {
       ...empty,
-      error: err instanceof Error ? err.message : 'Failed to load payout queue',
+      error: toErrorMessage(err, 'Failed to load payout queue'),
     }
   }
 }
@@ -305,7 +309,7 @@ export async function markOrderPayoutSent(
     console.error('markOrderPayoutSent:', err)
     return {
       success: false,
-      error: err instanceof Error ? err.message : 'Failed to mark payout sent',
+      error: toErrorMessage(err, 'Failed to mark payout sent'),
     }
   }
 }
