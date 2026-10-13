@@ -8,6 +8,7 @@ import {
   type PublicGatewayStatus,
 } from '@/lib/payment-config'
 import { revalidatePath } from 'next/cache'
+import { recordAdminAudit } from '@/lib/admin-audit'
 
 // Shape returned to the admin dashboard (includes secrets, admin-only).
 export interface AdminGatewaySettings {
@@ -45,6 +46,18 @@ async function assertAdmin() {
   if (profile?.role !== 'admin') {
     throw new Error('Unauthorized: Admin access required')
   }
+
+  return user
+}
+
+async function readGatewayConfig(gateway: GatewayName): Promise<Record<string, string>> {
+  const supabase = createSupabaseServiceClient()
+  const { data } = await supabase
+    .from('payment_gateways')
+    .select('config')
+    .eq('gateway', gateway)
+    .maybeSingle()
+  return (data?.config as Record<string, string>) || {}
 }
 
 // Public, client-safe: only booleans, no secrets. Used by the checkout page.
@@ -119,17 +132,32 @@ export async function updateStripeSettings(input: {
   publishableKey: string
   webhookSecret: string
 }) {
-  await assertAdmin()
+  const actor = await assertAdmin()
 
   if (input.is_enabled && !input.secretKey.trim()) {
     throw new Error('A Stripe secret key is required to enable Stripe.')
   }
 
-  await upsertGateway('stripe', input.is_enabled, {
+  const previous = await readGatewayConfig('stripe')
+  const nextConfig = {
     secretKey: input.secretKey.trim(),
     publishableKey: input.publishableKey.trim(),
     webhookSecret: input.webhookSecret.trim(),
-  })
+  }
+  const secretFields = ['secretKey', 'webhookSecret'] as const
+  const fieldsChanged = secretFields.filter(
+    (key) => (previous[key] || '') !== (nextConfig[key] || '')
+  )
+
+  await upsertGateway('stripe', input.is_enabled, nextConfig)
+
+  if (fieldsChanged.length > 0) {
+    await recordAdminAudit({
+      actorId: actor.id,
+      action: 'gateway_secrets_saved',
+      metadata: { gateway: 'stripe', fieldsChanged },
+    })
+  }
 
   revalidatePath('/admin')
   revalidatePath('/checkout')
@@ -143,18 +171,30 @@ export async function updateWhishSettings(input: {
   websiteUrl: string
   environment: 'sandbox' | 'production'
 }) {
-  await assertAdmin()
+  const actor = await assertAdmin()
 
   if (input.is_enabled && (!input.channel.trim() || !input.secret.trim() || !input.websiteUrl.trim())) {
     throw new Error('Channel, secret and website URL are required to enable Whish.')
   }
 
+  const previous = await readGatewayConfig('whish')
+  const nextSecret = input.secret.trim()
+  const secretChanged = (previous.secret || '') !== nextSecret
+
   await upsertGateway('whish', input.is_enabled, {
     channel: input.channel.trim(),
-    secret: input.secret.trim(),
+    secret: nextSecret,
     websiteUrl: input.websiteUrl.trim(),
     environment: input.environment,
   })
+
+  if (secretChanged) {
+    await recordAdminAudit({
+      actorId: actor.id,
+      action: 'gateway_secrets_saved',
+      metadata: { gateway: 'whish', fieldsChanged: ['secret'] },
+    })
+  }
 
   revalidatePath('/admin')
   revalidatePath('/checkout')

@@ -71,6 +71,7 @@ export function CartSidebar() {
                     <span>{t('cart.subtotal')}</span>
                     <span>${subtotal.toFixed(2)}</span>
                 </div>
+                <p className="text-xs text-muted-foreground w-full">{t('cart.feeAtCheckout')}</p>
                 <div className="mt-4 flex flex-col gap-2">
                     <SheetClose asChild>
                         <Button asChild className="w-full">

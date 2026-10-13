@@ -29,6 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { useSearchParams, useRouter } from 'next/navigation'
 import { 
   getOrdersForAdmin, 
   getOrderDetailsForAdmin, 
@@ -55,12 +56,31 @@ import {
   AlertCircle
 } from 'lucide-react'
 
+const ORDER_STATUSES = ['all', 'pending', 'completed', 'failed', 'refunded'] as const
+type OrderStatusFilter = (typeof ORDER_STATUSES)[number]
+
 export function OrderManagement() {
+  const searchParams = useSearchParams()
+  const router = useRouter()
   const [orders, setOrders] = useState<DetailedOrder[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
-  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'completed' | 'failed' | 'refunded'>('all')
+  const [statusFilter, setStatusFilter] = useState<OrderStatusFilter>('all')
+
+  useEffect(() => {
+    const status = searchParams?.get('status')
+    if (status && ORDER_STATUSES.includes(status as OrderStatusFilter)) {
+      setStatusFilter(status as OrderStatusFilter)
+    }
+  }, [searchParams])
+
+  const setStatusFilterAndUrl = (status: OrderStatusFilter) => {
+    setStatusFilter(status)
+    const params = new URLSearchParams({ tab: 'orders' })
+    if (status !== 'all') params.set('status', status)
+    router.replace(`/admin?${params.toString()}`, { scroll: false })
+  }
   const [selectedOrder, setSelectedOrder] = useState<DetailedOrder | null>(null)
   const [orderDetailsLoading, setOrderDetailsLoading] = useState(false)
   const [statusUpdateLoading, setStatusUpdateLoading] = useState(false)
@@ -235,12 +255,12 @@ export function OrderManagement() {
               />
             </div>
             <div className="flex gap-2">
-              {['all', 'pending', 'completed', 'failed', 'refunded'].map((status) => (
+              {ORDER_STATUSES.map((status) => (
                 <Button
                   key={status}
                   variant={statusFilter === status ? 'default' : 'outline'}
                   size="sm"
-                  onClick={() => setStatusFilter(status as any)}
+                  onClick={() => setStatusFilterAndUrl(status)}
                 >
                   {status.charAt(0).toUpperCase() + status.slice(1)}
                 </Button>

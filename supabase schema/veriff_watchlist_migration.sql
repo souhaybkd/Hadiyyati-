@@ -1,5 +1,7 @@
 -- =============================================================================
--- Veriff PEP & Sanctions (watchlist screening) — run after veriff_kyc_migration.sql
+-- Veriff PEP & Sanctions (watchlist screening)
+-- Also included at the end of veriff_kyc_migration.sql — run this file only if you
+-- already ran the older KYC migration before watchlist columns were added.
 -- =============================================================================
 
 alter table public.kyc_verifications
@@ -19,3 +21,5 @@ alter table public.profiles
 
 comment on column public.profiles.watchlist_cleared is
   'True when PEP/sanctions screening allows payouts (in addition to kyc_status = approved)';
+
+notify pgrst, 'reload schema';

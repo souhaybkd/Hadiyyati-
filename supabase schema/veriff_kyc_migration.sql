@@ -63,3 +63,19 @@ create policy "kyc_verifications admin select"
       where p.id = auth.uid() and p.role = 'admin'
     )
   );
+
+-- 4) PEP & Sanctions (watchlist screening) — required by the app since Veriff integration update
+alter table public.kyc_verifications
+  add column if not exists watchlist_review_status text,
+  add column if not exists watchlist_total_hits integer,
+  add column if not exists watchlist_has_unacknowledged_changes boolean not null default false,
+  add column if not exists watchlist_monitor_status text,
+  add column if not exists watchlist_screened_at timestamptz,
+  add column if not exists raw_watchlist jsonb;
+
+alter table public.profiles
+  add column if not exists watchlist_review_status text,
+  add column if not exists watchlist_cleared boolean not null default false;
+
+-- Refresh PostgREST schema cache so the API sees new columns immediately
+notify pgrst, 'reload schema';

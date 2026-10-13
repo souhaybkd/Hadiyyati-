@@ -30,10 +30,9 @@ export async function getPlatformFeePercentage(): Promise<number> {
   return data.setting_value?.value || 10
 }
 
-// Calculate expected payout for a given price
+// Receiver gets the full wishlist list price; platform fee is paid by the buyer at checkout.
 export async function calculateExpectedPayout(price: number): Promise<number> {
-  const feePercentage = await getPlatformFeePercentage()
-  return price * (1 - (feePercentage / 100))
+  return price
 }
 
 // Admin function to update platform fee percentage

@@ -2,6 +2,12 @@ import { headers } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
 import { getStripeClient, getStripeWebhookSecret } from '@/lib/stripe'
 import { createOrder, sendGiftNotification } from '@/lib/actions/checkout'
+import { createSupabaseServiceClient } from '@/lib/supabase-service'
+import { PLATFORM_FEE_STRIPE_PRODUCT_NAME } from '@/lib/checkout-pricing'
+import {
+  parseCheckoutItemLines,
+  uniqueWishlistIdsFromMetadata,
+} from '@/lib/checkout-items'
 
 export async function POST(request: NextRequest) {
   const body = await request.text()
@@ -65,22 +71,46 @@ async function handleCheckoutSessionCompleted(session: any) {
     })
 
     const metadata = fullSession.metadata || {}
-    const lineItems = fullSession.line_items?.data || []
+    const itemLines = metadata.item_lines as string | undefined
+    const checkoutLines = itemLines?.trim()
+      ? parseCheckoutItemLines(itemLines)
+      : (metadata.item_ids ? metadata.item_ids.split(',').filter(Boolean) : []).map((id: string) => ({
+          id,
+          quantity: 1,
+        }))
 
-    // Extract wishlist item IDs from metadata
-    const itemIds = metadata.item_ids ? metadata.item_ids.split(',') : []
-    
-    console.log('Extracted item IDs from metadata:', itemIds)
+    const itemIds = uniqueWishlistIdsFromMetadata(itemLines, metadata.item_ids)
 
-    // Prepare order items with correct wishlist_item_id mapping
-    const orderItems = lineItems.map((item: any, index: number) => ({
-      wishlist_item_id: itemIds[index] || '', // Map to actual wishlist item ID
-      title: item.description || item.price?.product?.name || 'Unknown Item',
-      description: item.price?.product?.description || null,
-      price: (item.amount_total || 0) / 100, // Convert from cents
-      quantity: item.quantity || 1,
-      image_url: item.price?.product?.images?.[0] || null
-    }))
+    console.log('Extracted checkout lines from metadata:', checkoutLines)
+
+    const service = createSupabaseServiceClient()
+    const { data: wishlistRows } = await service
+      .from('wishlist_items')
+      .select('id, title, description, price, image_url')
+      .in('id', itemIds)
+
+    const wishlistById = new Map((wishlistRows || []).map((row) => [row.id, row]))
+
+    const orderItems = checkoutLines.map(({ id, quantity }) => {
+      const row = wishlistById.get(id)
+      return {
+        wishlist_item_id: id,
+        title: row?.title || 'Gift item',
+        description: row?.description || null,
+        price: Number(row?.price ?? 0),
+        quantity,
+        image_url: row?.image_url || null,
+      }
+    })
+
+    // Log if Stripe line items included the platform fee (not stored as order_items).
+    const feeLines = (fullSession.line_items?.data || []).filter((item) => {
+      const product = item.price?.product as { name?: string } | undefined
+      return product?.name === PLATFORM_FEE_STRIPE_PRODUCT_NAME
+    })
+    if (feeLines.length > 1) {
+      console.warn('Unexpected multiple platform fee line items on session', session.id)
+    }
 
     console.log('Prepared order items with wishlist_item_ids:', orderItems)
 

@@ -25,18 +25,29 @@ export interface GiftNotificationWithDetails {
   items_count: number | null
 }
 
+function sanitizeNotificationSearch(term: string): string {
+  return term.replace(/[%_,()]/g, '').trim()
+}
+
 // Get all gift notifications for admin (with user details)
-export async function getGiftNotifications(
-  page: number = 1,
-  limit: number = 20,
-  filter: 'all' | 'unread' | 'read' = 'all'
-): Promise<{
+export async function getGiftNotifications(params?: {
+  page?: number
+  pageSize?: number
+  filter?: 'all' | 'unread' | 'read'
+  search?: string
+}): Promise<{
   notifications: GiftNotificationWithDetails[]
   totalCount: number
   totalPages: number
+  page: number
+  pageSize: number
 }> {
   const supabase = await createSupabaseServerClient()
-  
+  const pageSize = Math.min(Math.max(params?.pageSize ?? 20, 1), 100)
+  const page = Math.max(params?.page ?? 1, 1)
+  const filter = params?.filter ?? 'all'
+  const offset = (page - 1) * pageSize
+
   // Check if user is admin
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) {
@@ -53,10 +64,41 @@ export async function getGiftNotifications(
     throw new Error('Unauthorized: Admin access required')
   }
 
-  // Build query with filters
-  let query = supabase
-    .from('gift_notifications')
-    .select(`
+  let recipientIds: string[] | null = null
+  const search = params?.search ? sanitizeNotificationSearch(params.search) : ''
+  if (search) {
+    const { data: matchingProfiles } = await supabase
+      .from('profiles')
+      .select('id')
+      .or(`full_name.ilike.%${search}%,username.ilike.%${search}%,email.ilike.%${search}%`)
+      .limit(200)
+
+    recipientIds = (matchingProfiles || []).map((p) => p.id)
+    if (recipientIds.length === 0) {
+      return {
+        notifications: [],
+        totalCount: 0,
+        totalPages: 1,
+        page,
+        pageSize,
+      }
+    }
+  }
+
+  const applyListFilters = (query: any) => {
+    let q = query
+    if (filter === 'unread') q = q.eq('is_read', false)
+    else if (filter === 'read') q = q.eq('is_read', true)
+    if (recipientIds) q = q.in('recipient_id', recipientIds)
+    return q
+  }
+
+  const { count: totalCount } = await applyListFilters(
+    supabase.from('gift_notifications').select('*', { count: 'exact', head: true })
+  )
+
+  let query = applyListFilters(
+    supabase.from('gift_notifications').select(`
       *,
       recipient:profiles!gift_notifications_recipient_id_fkey(
         full_name,
@@ -70,24 +112,11 @@ export async function getGiftNotifications(
         customer_email
       )
     `)
+  )
 
-  // Apply read/unread filter
-  if (filter === 'unread') {
-    query = query.eq('is_read', false)
-  } else if (filter === 'read') {
-    query = query.eq('is_read', true)
-  }
-
-  // Get total count for pagination
-  const { count: totalCount } = await supabase
-    .from('gift_notifications')
-    .select('*', { count: 'exact', head: true })
-
-  // Get paginated results
-  const offset = (page - 1) * limit
   const { data: notifications, error } = await query
     .order('created_at', { ascending: false })
-    .range(offset, offset + limit - 1)
+    .range(offset, offset + pageSize - 1)
 
   if (error) {
     console.error('Error fetching gift notifications:', error)
@@ -95,8 +124,28 @@ export async function getGiftNotifications(
   }
 
   // Get sender details for each notification
+  type NotificationRow = {
+    id: string
+    order_id: string | null
+    recipient_id: string | null
+    notification_type: string
+    email_sent: boolean
+    email_sent_at: string | null
+    is_read: boolean
+    read_at: string | null
+    metadata: Record<string, unknown> | null
+    created_at: string
+    recipient?: { full_name: string | null; username: string | null; email: string | null } | null
+    orders?: {
+      user_id: string | null
+      total_amount: number | null
+      status: string | null
+      customer_email: string | null
+    } | null
+  }
+
   const notificationsWithSenders = await Promise.all(
-    (notifications || []).map(async (notification) => {
+    (notifications as NotificationRow[] | null || []).map(async (notification) => {
       let senderName = null
       let senderEmail = null
 
@@ -131,17 +180,22 @@ export async function getGiftNotifications(
         sender_email: senderEmail,
         order_total: notification.orders?.total_amount || null,
         order_status: notification.orders?.status || null,
-        items_count: notification.metadata?.items_count || null,
+        items_count:
+          typeof notification.metadata?.items_count === 'number'
+            ? notification.metadata.items_count
+            : null,
       }
     })
   )
 
-  const totalPages = Math.ceil((totalCount || 0) / limit)
+  const totalPages = Math.max(1, Math.ceil((totalCount || 0) / pageSize))
 
   return {
     notifications: notificationsWithSenders,
     totalCount: totalCount || 0,
-    totalPages
+    totalPages,
+    page,
+    pageSize,
   }
 }
 

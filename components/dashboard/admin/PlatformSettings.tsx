@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Settings, DollarSign, Save, Loader2, AlertCircle, CheckCircle } from 'lucide-react'
 import { getPlatformFeePercentage, updatePlatformFeePercentage } from '@/lib/actions/platform-settings'
+import { AdminAuditLog } from '@/components/dashboard/admin/AdminAuditLog'
 
 export function PlatformSettings() {
   const [feePercentage, setFeePercentage] = useState<number>(10)
@@ -51,8 +52,8 @@ export function PlatformSettings() {
     }
   }
 
-  const calculateExamplePayout = (price: number) => {
-    return price * (1 - (feePercentage / 100))
+  const calculateExampleBuyerTotal = (price: number) => {
+    return price * (1 + feePercentage / 100)
   }
 
   if (loading) {
@@ -139,17 +140,17 @@ export function PlatformSettings() {
 
             {/* Preview Examples */}
             <div className="space-y-4">
-              <h4 className="font-medium text-sm">Payout Examples</h4>
+              <h4 className="font-medium text-sm">Checkout examples</h4>
               <div className="space-y-3">
                 {[10, 25, 50, 100].map((price) => (
                   <div key={price} className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
-                    <span className="text-sm">Gift Price: ${price}</span>
+                    <span className="text-sm">Wishlist price: ${price}</span>
                     <div className="text-right">
                       <div className="text-sm font-medium text-green-600">
-                        Payout: ${calculateExamplePayout(price).toFixed(2)}
+                        Receiver gets: ${price.toFixed(2)}
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        Fee: ${(price * (feePercentage / 100)).toFixed(2)}
+                        Buyer pays: ${calculateExampleBuyerTotal(price).toFixed(2)} (incl. fee)
                       </div>
                     </div>
                   </div>
@@ -162,16 +163,16 @@ export function PlatformSettings() {
           <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <h4 className="font-medium text-blue-900 mb-2">Important Notes</h4>
             <ul className="text-sm text-blue-800 space-y-1">
-              <li>• Changing the platform fee will affect all future gift purchases</li>
-              <li>• Existing wishlist items will show updated payout amounts</li>
-              <li>• Users will see the expected payout when adding items to their wishlist</li>
+              <li>• The fee is added at checkout for the buyer, not deducted from the wishlist price</li>
+              <li>• Receivers get the full amount they listed on their wishlist</li>
+              <li>• Changing the fee affects new checkouts immediately</li>
               <li>• This fee helps cover platform costs, payment processing, and support</li>
             </ul>
           </div>
         </CardContent>
       </Card>
 
-
+      <AdminAuditLog />
     </div>
   )
 } 

@@ -16,7 +16,8 @@ import {
   Menu,
   Bell,
   Database,
-  CreditCard
+  CreditCard,
+  ShieldCheck,
 } from 'lucide-react'
 
 import { LanguageToggle } from '@/components/shared'
@@ -24,6 +25,7 @@ import { useLanguage } from '@/lib/contexts/LanguageContext'
 
 const adminNavigation = [
   { key: 'admin.overview', tab: 'overview', icon: BarChart3 },
+  { key: 'admin.compliance', tab: 'compliance', icon: ShieldCheck },
   { key: 'admin.users', tab: 'users', icon: Users },
   { key: 'admin.orders', tab: 'orders', icon: ShoppingCart },
   { key: 'admin.transactions', tab: 'transactions', icon: DollarSign },

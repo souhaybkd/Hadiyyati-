@@ -115,8 +115,9 @@ export default function TermsPage() {
             
             <h3 className="text-xl font-semibold mb-3 text-gray-800">5.3 Payouts</h3>
             <ul className="list-disc pl-6 mb-4 text-gray-700">
-              <li>Hadiyyati retains a 15% platform fee from each gift purchase</li>
-              <li>The remaining 85% is transferred to the Receiver&apos;s verified payment account</li>
+              <li>Receivers receive the full amount listed on the wishlist for each gifted item</li>
+              <li>Gifters pay the listed gift amount plus a platform service fee shown at checkout (the fee percentage is set by Hadiyyati and may change)</li>
+              <li>Listed amounts are transferred to the Receiver&apos;s verified payment account according to our payout schedule</li>
               <li>Additional transfer, network, or processing fees may apply depending on the selected payment method.</li>
               <li>Payouts are processed according to our standard payout schedule after the holding period</li>
               <li>Receivers are responsible for any taxes applicable to their earnings</li>
@@ -232,7 +233,7 @@ export default function TermsPage() {
           <section className="mb-8">
             <h2 className="text-2xl font-semibold mb-4 text-gray-900">8. PLATFORM FEES</h2>
             <p className="mb-4 text-gray-700">
-              Hadiyyati charges a 15% platform fee on all gift purchases. This fee covers:
+              Hadiyyati charges a platform service fee on gift purchases. The fee is added to the buyer&apos;s total at checkout and is disclosed before payment. Receivers are not charged this fee on the listed wishlist amount. The fee helps cover:
             </p>
             <ul className="list-disc pl-6 mb-4 text-gray-700">
               <li>Platform maintenance and development</li>

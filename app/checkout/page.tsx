@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
 import { useCart } from '@/lib/contexts/CartContext'
 import { getPublicGatewayStatusAction } from '@/lib/actions/payment-gateways'
+import { getPlatformFeePercentage } from '@/lib/actions/platform-settings'
+import { computeCheckoutTotals } from '@/lib/checkout-pricing'
 import { createSupabaseClient } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -107,10 +109,16 @@ function CheckoutContent() {
 
   const availableCount = (gateways.stripe ? 1 : 0) + (gateways.whish ? 1 : 0)
 
-  // Calculate totals. The amount actually charged by both gateways is the sum
-  // of item prices (no separate tax line), so the displayed total must match.
-  const subtotal = cartItems.reduce((total, item) => total + (item.price * item.quantity), 0)
-  const total = subtotal
+  const [feePercentage, setFeePercentage] = useState(10)
+
+  useEffect(() => {
+    getPlatformFeePercentage()
+      .then(setFeePercentage)
+      .catch(() => setFeePercentage(10))
+  }, [])
+
+  const itemsSubtotal = cartItems.reduce((total, item) => total + item.price * item.quantity, 0)
+  const { platformFee, buyerTotal } = computeCheckoutTotals(itemsSubtotal, feePercentage)
 
   // Get unique wishlist owners for gift recipients
   const wishlistOwners = Array.from(new Set(
@@ -485,13 +493,20 @@ function CheckoutContent() {
                 <div className="space-y-2">
                   <div className="flex justify-between">
                     <span>{t('cart.subtotal')}</span>
-                    <span>${subtotal.toFixed(2)}</span>
+                    <span>${itemsSubtotal.toFixed(2)}</span>
                   </div>
+                  {platformFee > 0 && (
+                    <div className="flex justify-between text-sm text-muted-foreground">
+                      <span>{t('checkout.platformFee', { pct: feePercentage })}</span>
+                      <span>${platformFee.toFixed(2)}</span>
+                    </div>
+                  )}
                   <Separator />
                   <div className="flex justify-between font-medium text-lg">
                     <span>{t('checkout.total')}</span>
-                    <span>${total.toFixed(2)}</span>
+                    <span>${buyerTotal.toFixed(2)}</span>
                   </div>
+                  <p className="text-xs text-muted-foreground">{t('checkout.receiverGetsListPrice')}</p>
                 </div>
 
                 {/* Guest details — only shown when not signed in. Gifting does

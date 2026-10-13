@@ -1,6 +1,7 @@
 "use client"
 import { AdminLayout } from "@/components/dashboard/AdminLayout";
 import { AdminOverview } from "@/components/dashboard/admin/AdminOverview";
+import { ComplianceManagement } from "@/components/dashboard/admin/ComplianceManagement";
 import { UserManagement } from "@/components/dashboard/admin/UserManagement";
 import { OrderManagement } from "@/components/dashboard/admin/OrderManagement";
 import { TransactionManagement } from "@/components/dashboard/admin/TransactionManagement";
@@ -19,6 +20,8 @@ function AdminDashboardContent() {
     switch (tab) {
       case "overview":
         return <AdminOverview />;
+      case "compliance":
+        return <ComplianceManagement />;
       case "users":
         return <UserManagement />;
       case "orders":

@@ -8,13 +8,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
-import { ImageIcon, ExternalLink, DollarSign, Loader2, Info, Upload, X, AlertCircle } from "lucide-react";
+import { ImageIcon, ExternalLink, DollarSign, Loader2, Upload, X, AlertCircle } from "lucide-react";
 import { 
   addWishlistItem, 
   updateWishlistItem, 
   type WishlistItem 
 } from "@/lib/actions/wishlist";
-import { getPlatformFeePercentage, calculateExpectedPayout } from "@/lib/actions/platform-settings";
 import { optimizeProductImage, validateImageFile } from "@/lib/storage";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/lib/contexts/LanguageContext";
@@ -37,8 +36,6 @@ export function AddItemForm({ item, onItemAdded, onClose }: AddItemFormProps) {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [platformFeePercentage, setPlatformFeePercentage] = useState<number>(10);
-  const [expectedPayout, setExpectedPayout] = useState<number>(0);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -62,32 +59,6 @@ export function AddItemForm({ item, onItemAdded, onClose }: AddItemFormProps) {
       }
     }
   }, [item]);
-
-  // Load platform fee percentage on component mount
-  useEffect(() => {
-    const loadPlatformFee = async () => {
-      try {
-        const feePercentage = await getPlatformFeePercentage();
-        setPlatformFeePercentage(feePercentage);
-      } catch (error) {
-        console.error('Error loading platform fee:', error);
-        // Keep default 10%
-      }
-    };
-    
-    loadPlatformFee();
-  }, []);
-
-  // Calculate expected payout when price changes
-  useEffect(() => {
-    const price = parseFloat(formData.price);
-    if (!isNaN(price) && price > 0) {
-      const payout = price * (1 - (platformFeePercentage / 100));
-      setExpectedPayout(payout);
-    } else {
-      setExpectedPayout(0);
-    }
-  }, [formData.price, platformFeePercentage]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -305,21 +276,6 @@ export function AddItemForm({ item, onItemAdded, onClose }: AddItemFormProps) {
                 required
               />
             </div>
-            {expectedPayout > 0 && (
-              <div className="p-3 bg-green-50 border border-green-200 rounded-md">
-                <div className="flex items-start gap-2">
-                  <Info className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                  <div className="text-sm">
-                    <p className="text-green-800 font-medium">
-                      {t('dash.youReceive')} <span className="text-lg font-bold">${expectedPayout.toFixed(2)}</span>
-                    </p>
-                    <p className="text-green-700 text-xs mt-1">
-                      {t('dash.afterFee', { pct: platformFeePercentage, fee: (parseFloat(formData.price || '0') * (platformFeePercentage / 100)).toFixed(2) })}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
 
           <div className="space-y-2">

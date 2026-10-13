@@ -3,6 +3,9 @@ import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { createSupabaseServiceClient } from '@/lib/supabase-service'
 import { getWhishConfig, isWhishUsable } from '@/lib/payment-config'
 import { createWhishPayment, formatWhishAmount, WhishError } from '@/lib/whish'
+import { getPlatformFeePercentage } from '@/lib/actions/platform-settings'
+import { resolveCheckoutItemsFromDb, itemsSubtotal } from '@/lib/checkout-items'
+import { computeCheckoutTotals } from '@/lib/checkout-pricing'
 
 function whishBuyerErrorKey(code: string): string {
   switch (code) {
@@ -68,48 +71,24 @@ export async function POST(request: NextRequest) {
     }
     const buyerName: string | null = user?.user_metadata?.full_name || customerName || null
 
-    for (let i = 0; i < items.length; i++) {
-      const item = items[i]
-      if (!item.title || typeof item.price !== 'number' || item.price <= 0) {
-        return NextResponse.json(
-          { error: `Invalid item data at index ${i}. Missing title or invalid price.`, errorKey: 'checkout.errInvalidItem' },
-          { status: 400 }
-        )
-      }
+    let resolvedItems
+    try {
+      resolvedItems = await resolveCheckoutItemsFromDb(supabase, items)
+    } catch (resolveError) {
+      const message = resolveError instanceof Error ? resolveError.message : 'Invalid cart'
+      const isPurchased = message.includes('purchased')
+      return NextResponse.json(
+        {
+          error: message,
+          errorKey: isPurchased ? 'checkout.errPurchased' : 'checkout.errInvalidItem',
+        },
+        { status: 400 }
+      )
     }
 
-    // Prevent buying already-purchased items.
-    const itemIds = items.map((item: any) => item.id).filter(Boolean)
-    if (itemIds.length > 0) {
-      const { data: wishlistItems, error: itemsError } = await supabase
-        .from('wishlist_items')
-        .select('id, title, is_purchased')
-        .in('id', itemIds)
-
-      if (itemsError) {
-        return NextResponse.json({ error: 'Failed to validate items', errorKey: 'checkout.errValidate' }, { status: 500 })
-      }
-
-      const purchasedItems = wishlistItems?.filter((item) => item.is_purchased) || []
-      if (purchasedItems.length > 0) {
-        return NextResponse.json(
-          {
-            error: `Cannot purchase: ${purchasedItems
-              .map((i) => i.title)
-              .join(', ')} ${purchasedItems.length === 1 ? 'is' : 'are'} already marked as purchased.`,
-            errorKey: 'checkout.errPurchased',
-            errorVars: { titles: purchasedItems.map((i) => i.title).join(', ') },
-          },
-          { status: 400 }
-        )
-      }
-    }
-
-    // Compute total (matches Stripe: sum of item prices, no separate tax line).
-    const amount = items.reduce(
-      (sum: number, item: any) => sum + item.price * (item.quantity || 1),
-      0
-    )
+    const feePercentage = await getPlatformFeePercentage()
+    const totals = computeCheckoutTotals(itemsSubtotal(resolvedItems), feePercentage)
+    const amount = totals.buyerTotal
     const currency = 'USD' as const
 
     // Reject amounts Whish cannot process before we persist anything.
@@ -141,7 +120,7 @@ export async function POST(request: NextRequest) {
     }
 
     const wishlistOwnerIds = Array.from(
-      new Set(items.map((item: any) => item.user_id).filter(Boolean))
+      new Set(resolvedItems.map((item) => item.user_id).filter(Boolean))
     ).join(',')
 
     // Unique reference for this transaction. Whish takes externalId as a string
@@ -172,7 +151,7 @@ export async function POST(request: NextRequest) {
       custom_message: customMessage || null,
       is_gift: !!isGift,
       wishlist_owner_ids: wishlistOwnerIds || null,
-      items,
+      items: resolvedItems,
       status: 'pending',
     })
 

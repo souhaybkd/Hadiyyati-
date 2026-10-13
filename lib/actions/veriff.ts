@@ -21,6 +21,20 @@ export interface UserKycInfo {
   watchlist_cleared: boolean
 }
 
+function kycSchemaSetupErrorMessage(error?: unknown): string {
+  const message =
+    typeof error === 'object' && error && 'message' in error
+      ? String((error as { message?: string }).message)
+      : ''
+  const blob = message.toLowerCase()
+  if (blob.includes('watchlist_cleared') || blob.includes('watchlist_review_status')) {
+    return (
+      'KYC database is missing PEP/sanctions columns. In the Supabase SQL editor, run supabase schema/veriff_watchlist_migration.sql (or re-run veriff_kyc_migration.sql), then try again.'
+    )
+  }
+  return 'KYC database setup is incomplete. Run supabase schema/veriff_kyc_migration.sql in the Supabase SQL editor, then try again.'
+}
+
 function isMissingKycSchema(error: unknown): boolean {
   const code =
     typeof error === 'object' && error && 'code' in error
@@ -50,7 +64,7 @@ function isMissingKycSchema(error: unknown): boolean {
 function startSessionErrorMessage(error: unknown): string {
   if (error instanceof VeriffConfigError) return error.message
   if (isMissingKycSchema(error)) {
-    return 'KYC database setup is incomplete. Run veriff_kyc_migration.sql in the Supabase SQL editor, then try again.'
+    return kycSchemaSetupErrorMessage(error)
   }
   if (error instanceof Error && error.message) {
     if (
@@ -212,10 +226,7 @@ export async function startVeriffSession(): Promise<{ url?: string; error?: stri
     if (profileError) {
       console.error('Error loading profile for Veriff:', profileError)
       if (isMissingKycSchema(profileError)) {
-        return {
-          error:
-            'KYC database setup is incomplete. Run veriff_kyc_migration.sql in the Supabase SQL editor, then try again.',
-        }
+        return { error: kycSchemaSetupErrorMessage(profileError) }
       }
       return { error: 'Failed to load profile for verification' }
     }
@@ -255,10 +266,7 @@ export async function startVeriffSession(): Promise<{ url?: string; error?: stri
     if (insertError) {
       console.error('Error inserting kyc_verifications:', insertError)
       if (isMissingKycSchema(insertError)) {
-        return {
-          error:
-            'KYC database setup is incomplete. Run veriff_kyc_migration.sql in the Supabase SQL editor, then try again.',
-        }
+        return { error: kycSchemaSetupErrorMessage(insertError) }
       }
       return { error: 'Failed to store verification session' }
     }
@@ -277,10 +285,7 @@ export async function startVeriffSession(): Promise<{ url?: string; error?: stri
     if (updateError) {
       console.error('Error updating profile KYC status:', updateError)
       if (isMissingKycSchema(updateError)) {
-        return {
-          error:
-            'KYC database setup is incomplete. Run veriff_kyc_migration.sql in the Supabase SQL editor, then try again.',
-        }
+        return { error: kycSchemaSetupErrorMessage(updateError) }
       }
       return { error: 'Failed to update verification status' }
     }

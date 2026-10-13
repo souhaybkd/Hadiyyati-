@@ -2,6 +2,16 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getEnabledStripeClient } from '@/lib/stripe'
 import { STRIPE_SHIPPING_ALLOWED_COUNTRIES } from '@/lib/stripe-shipping-countries'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { getPlatformFeePercentage } from '@/lib/actions/platform-settings'
+import {
+  resolveCheckoutItemsFromDb,
+  itemsSubtotal,
+  encodeCheckoutItemLines,
+} from '@/lib/checkout-items'
+import {
+  computeCheckoutTotals,
+  PLATFORM_FEE_STRIPE_PRODUCT_NAME,
+} from '@/lib/checkout-pricing'
 
 export async function POST(request: NextRequest) {
   try {
@@ -66,76 +76,61 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No items provided', errorKey: 'checkout.cartEmptyError' }, { status: 400 })
     }
 
-    // Validate items structure
-    console.log('🔍 Validating items structure...')
-    for (let i = 0; i < items.length; i++) {
-      const item = items[i]
-      if (!item.title || typeof item.price !== 'number' || item.price <= 0) {
-        console.error(`❌ Invalid item at index ${i}:`, item)
-        return NextResponse.json({ 
-          error: `Invalid item data at index ${i}. Missing title or invalid price.`,
-          errorKey: 'checkout.errInvalidItem',
-        }, { status: 400 })
-      }
+    let resolvedItems
+    try {
+      resolvedItems = await resolveCheckoutItemsFromDb(supabase, items)
+    } catch (resolveError) {
+      const message = resolveError instanceof Error ? resolveError.message : 'Invalid cart'
+      const isPurchased = message.includes('purchased')
+      return NextResponse.json(
+        {
+          error: message,
+          errorKey: isPurchased ? 'checkout.errPurchased' : 'checkout.errInvalidItem',
+        },
+        { status: 400 }
+      )
     }
-    console.log('✅ Items validation passed')
 
-    // Check if any items are marked as purchased
-    console.log('🔍 Checking if items are available for purchase...')
-    const itemIds = items.map((item: any) => item.id).filter(Boolean)
-    if (itemIds.length > 0) {
-      const { data: wishlistItems, error: itemsError } = await supabase
-        .from('wishlist_items')
-        .select('id, title, is_purchased')
-        .in('id', itemIds)
+    const feePercentage = await getPlatformFeePercentage()
+    const totals = computeCheckoutTotals(itemsSubtotal(resolvedItems), feePercentage)
 
-      if (itemsError) {
-        console.error('❌ Error checking wishlist items:', itemsError)
-        return NextResponse.json({ 
-          error: 'Failed to validate items',
-          errorKey: 'checkout.errValidate',
-        }, { status: 500 })
-      }
-
-      const purchasedItems = wishlistItems?.filter(item => item.is_purchased) || []
-      if (purchasedItems.length > 0) {
-        console.error('❌ Some items are already marked as purchased:', purchasedItems.map(i => i.title))
-        return NextResponse.json({ 
-          error: `Cannot purchase: ${purchasedItems.map(i => i.title).join(', ')} ${purchasedItems.length === 1 ? 'is' : 'are'} already marked as purchased.`,
-          errorKey: 'checkout.errPurchased',
-          errorVars: { titles: purchasedItems.map(i => i.title).join(', ') },
-        }, { status: 400 })
-      }
-    }
-    console.log('✅ All items are available for purchase')
-
-    // Calculate total and prepare line items
     console.log('🔍 Preparing line items for Stripe...')
-    const lineItems = items.map((item: any, index: number) => {
-      console.log(`📝 Processing item ${index}:`, {
-        title: item.title,
-        price: item.price,
-        quantity: item.quantity || 1,
-        wishlist_owner_name: item.wishlist_owner_name
-      })
-      
-      return {
+    const lineItems = resolvedItems.map((item) => ({
+      price_data: {
+        currency: 'usd',
+        product_data: {
+          name: item.title,
+          description: item.wishlist_owner_name
+            ? language === 'ar'
+              ? `هدية إلى ${item.wishlist_owner_name}`
+              : `Gift to ${item.wishlist_owner_name}`
+            : language === 'ar'
+              ? 'هدية من هديتي'
+              : 'Gift from hadiyyati',
+          images: item.image_url ? [item.image_url] : [],
+        },
+        unit_amount: Math.round(item.price * 100),
+      },
+      quantity: item.quantity,
+    }))
+
+    if (totals.platformFee > 0) {
+      lineItems.push({
         price_data: {
           currency: 'usd',
           product_data: {
-            name: item.title,
-            description: item.wishlist_owner_name
-              ? (language === 'ar'
-                  ? `هدية إلى ${item.wishlist_owner_name}`
-                  : `Gift to ${item.wishlist_owner_name}`)
-              : (language === 'ar' ? 'هدية من هديتي' : 'Gift from hadiyyati'),
-            images: item.image_url ? [item.image_url] : [],
+            name: PLATFORM_FEE_STRIPE_PRODUCT_NAME,
+            description:
+              language === 'ar'
+                ? `عمولة المنصة (${totals.feePercentage}%)`
+                : `Platform service fee (${totals.feePercentage}%)`,
+            images: [],
           },
-          unit_amount: Math.round(item.price * 100), // Convert to cents
+          unit_amount: Math.round(totals.platformFee * 100),
         },
-        quantity: item.quantity || 1,
-      }
-    })
+        quantity: 1,
+      })
+    }
 
     // Create metadata for the session
     const metadata = {
@@ -143,8 +138,11 @@ export async function POST(request: NextRequest) {
       buyer_name: buyerName,
       custom_message: customMessage || '',
       is_gift: isGift ? 'true' : 'false',
-      item_ids: items.map((item: any) => item.id).join(','),
-      wishlist_owner_ids: Array.from(new Set(items.map((item: any) => item.user_id))).join(','),
+      item_ids: resolvedItems.map((item) => item.id).join(','),
+      item_lines: encodeCheckoutItemLines(resolvedItems),
+      wishlist_owner_ids: Array.from(new Set(resolvedItems.map((item) => item.user_id).filter(Boolean))).join(','),
+      platform_fee: String(totals.platformFee),
+      items_subtotal: String(totals.itemsSubtotal),
     }
     
     console.log('📋 Session metadata:', metadata)
