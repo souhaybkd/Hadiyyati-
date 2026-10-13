@@ -115,7 +115,7 @@ export function PlatformSettings() {
                   <span className="text-sm text-muted-foreground font-medium">%</span>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Percentage of each gift purchase that goes to the platform (0% - 50%)
+                  Added to the buyer&apos;s total at checkout (0% – 50%); receivers still get the full list price
                 </p>
               </div>
 

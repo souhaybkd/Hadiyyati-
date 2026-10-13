@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -52,6 +52,23 @@ const PAYOUT_FILTERS: { id: PayoutQueueFilter; label: string }[] = [
 
 const PAGE_SIZE = 20
 
+function parsePayoutFilter(raw: string | null | undefined): PayoutQueueFilter {
+  if (raw && PAYOUT_FILTERS.some((f) => f.id === raw)) {
+    return raw as PayoutQueueFilter
+  }
+  return 'due'
+}
+
+function resolveTransactionsView(
+  searchParams: { get: (key: string) => string | null } | null
+): 'payouts' | 'payments' {
+  const viewParam = searchParams?.get('view')
+  if (viewParam === 'payments') return 'payments'
+  if (viewParam === 'payouts') return 'payouts'
+  if (searchParams?.get('gateway') || searchParams?.get('status')) return 'payments'
+  return 'payouts'
+}
+
 function copyText(text: string) {
   void navigator.clipboard.writeText(text)
 }
@@ -60,8 +77,8 @@ export function TransactionManagement() {
   const searchParams = useSearchParams()
   const router = useRouter()
 
-  const view = searchParams?.get('view') === 'payments' ? 'payments' : 'payouts'
-  const payoutFilter = (searchParams?.get('payout') as PayoutQueueFilter) || 'due'
+  const view = resolveTransactionsView(searchParams)
+  const payoutFilter = parsePayoutFilter(searchParams?.get('payout'))
 
   const [payoutItems, setPayoutItems] = useState<AdminPayoutQueueItem[]>([])
   const [payoutLoading, setPayoutLoading] = useState(true)
@@ -78,8 +95,18 @@ export function TransactionManagement() {
   const [issues, setIssues] = useState<AdminPaymentIssue[]>([])
   const [issuesLoading, setIssuesLoading] = useState(false)
   const [issuesError, setIssuesError] = useState<string | null>(null)
-  const [gatewayFilter, setGatewayFilter] = useState<GatewayFilter>('all')
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('failed')
+
+  const gatewayFilter = useMemo((): GatewayFilter => {
+    const gateway = searchParams?.get('gateway')
+    if (gateway === 'whish' || gateway === 'stripe') return gateway
+    return 'all'
+  }, [searchParams])
+
+  const statusFilter = useMemo((): StatusFilter => {
+    const status = searchParams?.get('status')
+    if (status === 'failed' || status === 'pending' || status === 'all') return status
+    return 'failed'
+  }, [searchParams])
 
   const setView = (v: 'payouts' | 'payments') => {
     const params = new URLSearchParams({ tab: 'transactions', view: v })
@@ -146,13 +173,6 @@ export function TransactionManagement() {
   useEffect(() => {
     if (view === 'payments') fetchIssues()
   }, [view, fetchIssues])
-
-  useEffect(() => {
-    const gateway = searchParams?.get('gateway')
-    if (gateway === 'whish' || gateway === 'stripe') setGatewayFilter(gateway)
-    const status = searchParams?.get('status')
-    if (status === 'failed' || status === 'pending' || status === 'all') setStatusFilter(status)
-  }, [searchParams])
 
   const confirmMarkSent = async () => {
     if (!markTarget) return

@@ -2,6 +2,7 @@
 
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { createSupabaseServiceClient } from '@/lib/supabase-service'
+import { toErrorMessage } from '@/lib/error-utils'
 import { revalidatePath } from 'next/cache'
 import { fetchWatchlistScreening } from '@/lib/veriff'
 import { persistWatchlistScreening } from '@/lib/veriff-watchlist-persist'
@@ -200,7 +201,7 @@ export async function getComplianceQueueCounts(): Promise<{
     console.error('getComplianceQueueCounts:', error)
     return {
       counts: empty,
-      error: error instanceof Error ? error.message : 'Failed to load queue counts',
+      error: toErrorMessage(error, 'Failed to load queue counts'),
     }
   }
 }
@@ -251,7 +252,7 @@ export async function getComplianceCases(params?: {
     return {
       data: [],
       count: 0,
-      error: error instanceof Error ? error.message : 'Failed to load compliance cases',
+      error: toErrorMessage(error, 'Failed to load compliance cases'),
     }
   }
 }
@@ -296,7 +297,7 @@ export async function getComplianceUserDetail(
     console.error('getComplianceUserDetail:', error)
     return {
       data: null,
-      error: error instanceof Error ? error.message : 'Failed to load user compliance detail',
+      error: toErrorMessage(error, 'Failed to load user compliance detail'),
     }
   }
 }
@@ -407,7 +408,7 @@ export async function adminApproveWatchlistAfterReview(
     console.error('adminApproveWatchlistAfterReview:', error)
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to approve watchlist review',
+      error: toErrorMessage(error, 'Failed to approve watchlist review'),
     }
   }
 }

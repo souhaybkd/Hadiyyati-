@@ -86,6 +86,7 @@ export function OrderManagement() {
   const [statusUpdateLoading, setStatusUpdateLoading] = useState(false)
   const [newStatus, setNewStatus] = useState('')
   const [adminNotes, setAdminNotes] = useState('')
+  const [ordersError, setOrdersError] = useState<string | null>(null)
 
   // Only the status filter is applied server-side; free-text search is handled
   // client-side (see filteredOrders) so typing doesn't refetch on every keystroke.
@@ -96,10 +97,15 @@ export function OrderManagement() {
         status: statusFilter !== 'all' ? statusFilter : undefined,
         limit: 100
       })
-      
-      if (result.data) {
-        setOrders(result.data)
+
+      if (result.error || !result.data) {
+        setOrdersError(result.error || 'Failed to load orders')
+        setOrders([])
+        return
       }
+
+      setOrdersError(null)
+      setOrders(result.data)
     } catch (err) {
       console.error('Error fetching orders:', err)
     } finally {
@@ -269,6 +275,9 @@ export function OrderManagement() {
           </div>
         </CardHeader>
         <CardContent>
+          {ordersError && (
+            <p className="text-center text-red-600 py-4 mb-2">{ordersError}</p>
+          )}
           <Table>
             <TableHeader>
               <TableRow>

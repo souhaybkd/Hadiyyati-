@@ -3,6 +3,7 @@
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { revalidatePath } from 'next/cache'
 import { recordAdminAudit } from '@/lib/admin-audit'
+import { toErrorMessage } from '@/lib/error-utils'
 
 const USER_STATUSES = ['active', 'inactive', 'banned', 'suspended'] as const
 const USER_ROLES = ['user', 'admin'] as const
@@ -139,7 +140,7 @@ export async function getUsers(filters?: {
       page,
       pageSize,
       totalPages: 1,
-      error: 'Failed to fetch users',
+      error: toErrorMessage(error, 'Failed to fetch users'),
     }
   }
 }
@@ -325,7 +326,7 @@ export async function getAdminQueueStats(): Promise<AdminQueueStats> {
     console.error('Error fetching admin queue stats:', error)
     return {
       ...empty,
-      error: error instanceof Error ? error.message : 'Failed to load admin queue',
+      error: toErrorMessage(error, 'Failed to load admin queue'),
     }
   }
 }
@@ -425,7 +426,7 @@ export async function getPaymentIssuesForAdmin(filters?: {
     console.error('Error fetching payment issues:', error)
     return {
       data: [],
-      error: error instanceof Error ? error.message : 'Failed to fetch payment issues',
+      error: toErrorMessage(error, 'Failed to fetch payment issues'),
     }
   }
 }
@@ -597,7 +598,7 @@ export async function getOrdersForAdmin(filters?: {
     return { data: processedData, count, error: null }
   } catch (error) {
     console.error('Error fetching orders:', error)
-    return { data: null, count: 0, error: 'Failed to fetch orders' }
+    return { data: null, count: 0, error: toErrorMessage(error, 'Failed to fetch orders') }
   }
 }
 
@@ -826,7 +827,7 @@ export async function getAdminAuditLog(limit = 40): Promise<{
     console.error('Error fetching admin audit log:', error)
     return {
       data: [],
-      error: error instanceof Error ? error.message : 'Failed to load audit log',
+      error: toErrorMessage(error, 'Failed to load audit log'),
     }
   }
 }

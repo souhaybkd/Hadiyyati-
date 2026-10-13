@@ -9,6 +9,8 @@ import {
   ORDER_PAYOUT_DELAY_DAYS,
 } from '@/lib/payout-schedule'
 import { payoutDetailsSummary, payoutMethodLabel } from '@/lib/payout-display'
+import { createSupabaseServiceClient } from '@/lib/supabase-service'
+import { toErrorMessage } from '@/lib/error-utils'
 
 export type PayoutQueueFilter = 'due' | 'upcoming' | 'paid' | 'needs_setup' | 'all'
 
@@ -49,21 +51,12 @@ async function assertAdmin() {
     throw new Error('Admin access required')
   }
 
-  return { supabase, user }
+  return { user }
 }
 
 function daysUntil(due: Date, from: Date = new Date()): number {
   const ms = due.getTime() - from.getTime()
   return Math.ceil(ms / (1000 * 60 * 60 * 24))
-}
-
-function toErrorMessage(err: unknown, fallback: string): string {
-  if (err instanceof Error) return err.message
-  if (err && typeof err === 'object' && 'message' in err) {
-    const message = (err as { message: unknown }).message
-    if (typeof message === 'string' && message.trim()) return message
-  }
-  return fallback
 }
 
 export async function getPayoutQueueForAdmin(params?: {
@@ -95,7 +88,8 @@ export async function getPayoutQueueForAdmin(params?: {
   }
 
   try {
-    const { supabase } = await assertAdmin()
+    await assertAdmin()
+    const supabase = createSupabaseServiceClient()
 
     const dueCutoff = subDays(new Date(), ORDER_PAYOUT_DELAY_DAYS).toISOString()
 
@@ -270,9 +264,10 @@ export async function markOrderPayoutSent(
   adminNote?: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const { supabase, user } = await assertAdmin()
+    const { user } = await assertAdmin()
+    const service = createSupabaseServiceClient()
 
-    const { data: order, error: fetchError } = await supabase
+    const { data: order, error: fetchError } = await service
       .from('orders')
       .select('id, status, is_gift, payout_sent_at')
       .eq('id', orderId)
@@ -291,7 +286,7 @@ export async function markOrderPayoutSent(
     }
 
     const now = new Date().toISOString()
-    const { error } = await supabase
+    const { error } = await service
       .from('orders')
       .update({
         payout_sent_at: now,
