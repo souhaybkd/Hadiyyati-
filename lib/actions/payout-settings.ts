@@ -1,6 +1,8 @@
 'use server'
 
 import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { createSupabaseServiceClient } from '@/lib/supabase-service'
+import { reconcileProfileWatchlistClearance } from '@/lib/veriff-watchlist-persist'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { 
@@ -64,7 +66,16 @@ export async function savePayoutSettings(formData: FormData) {
       )
     }
 
-    if (!profile?.watchlist_cleared) {
+    let watchlistCleared = Boolean(profile?.watchlist_cleared)
+    if (!watchlistCleared) {
+      const healed = await reconcileProfileWatchlistClearance(
+        createSupabaseServiceClient(),
+        user.id
+      )
+      watchlistCleared = healed.watchlist_cleared
+    }
+
+    if (!watchlistCleared) {
       throw new Error(
         'PEP and sanctions screening must be completed before saving payout settings. This usually finishes shortly after identity verification.'
       )

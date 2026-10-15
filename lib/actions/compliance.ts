@@ -5,7 +5,10 @@ import { createSupabaseServiceClient } from '@/lib/supabase-service'
 import { toErrorMessage } from '@/lib/error-utils'
 import { revalidatePath } from 'next/cache'
 import { fetchWatchlistScreening } from '@/lib/veriff'
-import { persistWatchlistScreening } from '@/lib/veriff-watchlist-persist'
+import {
+  persistWatchlistScreening,
+  reconcileProfileWatchlistClearance,
+} from '@/lib/veriff-watchlist-persist'
 import type { WatchlistScreeningPayload } from '@/lib/veriff-watchlist'
 import type { KycStatus, KycVerification, Profile } from '@/lib/types/database'
 
@@ -206,6 +209,41 @@ export async function getComplianceQueueCounts(): Promise<{
   }
 }
 
+async function healApprovedScreening(
+  rows: Record<string, unknown>[]
+): Promise<
+  Map<string, { watchlist_cleared: boolean; watchlist_review_status: string | null }>
+> {
+  const pending = rows.filter(
+    (row) => row.kyc_status === 'approved' && !row.watchlist_cleared && row.id
+  )
+  const healed = new Map<
+    string,
+    { watchlist_cleared: boolean; watchlist_review_status: string | null }
+  >()
+  if (!pending.length) return healed
+
+  const service = createSupabaseServiceClient()
+  await Promise.all(
+    pending.map(async (row) => {
+      const userId = row.id as string
+      try {
+        const result = await reconcileProfileWatchlistClearance(service, userId)
+        if (result.changed) {
+          healed.set(userId, {
+            watchlist_cleared: result.watchlist_cleared,
+            watchlist_review_status: result.watchlist_review_status,
+          })
+        }
+      } catch (error) {
+        console.error('healApprovedScreening:', userId, error)
+      }
+    })
+  )
+
+  return healed
+}
+
 export async function getComplianceCases(params?: {
   filter?: ComplianceQueueFilter
   search?: string
@@ -242,8 +280,19 @@ export async function getComplianceCases(params?: {
     const { data, count, error } = await query
     if (error) throw error
 
+    const rows = (data || []) as Record<string, unknown>[]
+    const healed = await healApprovedScreening(rows)
+
     return {
-      data: (data || []).map((row) => mapCase(row as Record<string, unknown>)),
+      data: rows.map((row) => {
+        const fix = healed.get(row.id as string)
+        if (!fix) return mapCase(row)
+        return mapCase({
+          ...row,
+          watchlist_cleared: fix.watchlist_cleared,
+          watchlist_review_status: fix.watchlist_review_status ?? row.watchlist_review_status,
+        })
+      }),
       count: count || 0,
       error: null,
     }
@@ -282,11 +331,27 @@ export async function getComplianceUserDetail(
 
     if (verError) throw verError
 
-    const { payoutReady, blockReason } = payoutState(profile)
+    let profileRow = profile
+    if (profile.kyc_status === 'approved' && !profile.watchlist_cleared) {
+      const healed = await reconcileProfileWatchlistClearance(
+        createSupabaseServiceClient(),
+        userId
+      )
+      if (healed.changed) {
+        profileRow = {
+          ...profile,
+          watchlist_cleared: healed.watchlist_cleared,
+          watchlist_review_status:
+            healed.watchlist_review_status ?? profile.watchlist_review_status,
+        }
+      }
+    }
+
+    const { payoutReady, blockReason } = payoutState(profileRow)
 
     return {
       data: {
-        profile: profile as ComplianceUserDetail['profile'],
+        profile: profileRow as ComplianceUserDetail['profile'],
         verifications: (verifications || []) as KycVerification[],
         payoutReady,
         blockReason,
@@ -326,6 +391,15 @@ export async function adminRefreshWatchlistForUser(
 
     if (profile.watchlist_cleared) {
       return { watchlist_cleared: true, watchlist_review_status: 'reviewed' }
+    }
+
+    const healed = await reconcileProfileWatchlistClearance(service, userId)
+    if (healed.watchlist_cleared) {
+      revalidatePath('/admin')
+      return {
+        watchlist_cleared: true,
+        watchlist_review_status: healed.watchlist_review_status,
+      }
     }
 
     const data = await fetchWatchlistScreening(profile.kyc_session_id)

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServiceClient } from '@/lib/supabase-service'
 import { mapVeriffDecision } from '@/lib/veriff'
+import { reconcileProfileWatchlistClearance } from '@/lib/veriff-watchlist-persist'
 import { resolveVeriffUserId, verifyVeriffWebhookRequest } from '@/lib/veriff-webhook'
 
 /**
@@ -74,7 +75,10 @@ export async function POST(request: NextRequest) {
   if (kycStatus === 'approved') {
     profileUpdate.kyc_verified_at =
       verification.decisionTime || verification.acceptanceTime || now
-    profileUpdate.watchlist_cleared = false
+    // Do not reset watchlist_cleared here. Veriff often delivers the
+    // no-match screening a few hundred milliseconds before this decision.
+    // Session start already clears the flag; wiping it again left approved
+    // users stuck on "PEP/sanctions screening in progress".
   }
 
   const { error: profileError } = await supabase
@@ -85,6 +89,10 @@ export async function POST(request: NextRequest) {
   if (profileError) {
     console.error('Veriff webhook: failed to update profile', profileError)
     return NextResponse.json({ error: 'Profile update failed' }, { status: 500 })
+  }
+
+  if (kycStatus === 'approved') {
+    await reconcileProfileWatchlistClearance(supabase, userId)
   }
 
   return NextResponse.json({ received: true })

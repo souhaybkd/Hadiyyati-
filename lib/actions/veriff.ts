@@ -8,7 +8,10 @@ import {
   splitFullName,
   VeriffConfigError,
 } from '@/lib/veriff'
-import { persistWatchlistScreening } from '@/lib/veriff-watchlist-persist'
+import {
+  persistWatchlistScreening,
+  reconcileProfileWatchlistClearance,
+} from '@/lib/veriff-watchlist-persist'
 import type { WatchlistScreeningPayload } from '@/lib/veriff-watchlist'
 import type { KycStatus } from '@/lib/types/database'
 import { redirect } from 'next/navigation'
@@ -117,13 +120,29 @@ export async function getMyKycStatus(): Promise<UserKycInfo> {
     }
   }
 
-  return {
+  const status: UserKycInfo = {
     kyc_status: (data?.kyc_status as KycStatus) || 'unverified',
     kyc_verified_at: data?.kyc_verified_at ?? null,
     kyc_session_id: data?.kyc_session_id ?? null,
     watchlist_review_status: data?.watchlist_review_status ?? null,
     watchlist_cleared: Boolean(data?.watchlist_cleared),
   }
+
+  if (status.kyc_status === 'approved' && !status.watchlist_cleared) {
+    try {
+      const healed = await reconcileProfileWatchlistClearance(
+        createSupabaseServiceClient(),
+        user.id
+      )
+      status.watchlist_cleared = healed.watchlist_cleared
+      status.watchlist_review_status =
+        healed.watchlist_review_status ?? status.watchlist_review_status
+    } catch (healError) {
+      console.error('Error reconciling watchlist clearance:', healError)
+    }
+  }
+
+  return status
 }
 
 /**
@@ -166,12 +185,20 @@ export async function refreshMyWatchlistScreening(): Promise<{
   }
 
   try {
+    const service = createSupabaseServiceClient()
+    const healed = await reconcileProfileWatchlistClearance(service, user.id)
+    if (healed.watchlist_cleared) {
+      return {
+        watchlist_cleared: true,
+        watchlist_review_status: healed.watchlist_review_status,
+      }
+    }
+
     const data = await fetchWatchlistScreening(profile.kyc_session_id)
     if (!data?.reviewStatus) {
       return { watchlist_cleared: false, watchlist_review_status: null }
     }
 
-    const service = createSupabaseServiceClient()
     const result = await persistWatchlistScreening(service, {
       sessionId: profile.kyc_session_id,
       userId: user.id,

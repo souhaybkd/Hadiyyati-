@@ -10,6 +10,7 @@ import {
 } from '@/lib/payout-schedule'
 import { payoutDetailsSummary, payoutMethodLabel } from '@/lib/payout-display'
 import { createSupabaseServiceClient } from '@/lib/supabase-service'
+import { reconcileProfileWatchlistClearance } from '@/lib/veriff-watchlist-persist'
 import { toErrorMessage } from '@/lib/error-utils'
 
 export type PayoutQueueFilter = 'due' | 'upcoming' | 'paid' | 'needs_setup' | 'all'
@@ -165,6 +166,25 @@ export async function getPayoutQueueForAdmin(params?: {
       }
     }
 
+    const healedCleared = new Set<string>()
+    const seenOwners = new Set<string>()
+    const service = createSupabaseServiceClient()
+    await Promise.all(
+      (orders || []).map(async (order) => {
+        const ownerRaw = order.owner as
+          | { id: string; kyc_status: string; watchlist_cleared: boolean }
+          | { id: string; kyc_status: string; watchlist_cleared: boolean }[]
+          | null
+        const owner = Array.isArray(ownerRaw) ? ownerRaw[0] : ownerRaw
+        if (!owner?.id || seenOwners.has(owner.id)) return
+        seenOwners.add(owner.id)
+        if (owner.kyc_status === 'approved' && !owner.watchlist_cleared) {
+          const healed = await reconcileProfileWatchlistClearance(service, owner.id)
+          if (healed.watchlist_cleared) healedCleared.add(owner.id)
+        }
+      })
+    )
+
     const now = new Date()
     let items: AdminPayoutQueueItem[] = (orders || []).map((order) => {
       const ownerRaw = order.owner as
@@ -207,7 +227,10 @@ export async function getPayoutQueueForAdmin(params?: {
       const blockers: string[] = []
       if (!receiverId) blockers.push('No receiver on order')
       if (owner?.kyc_status !== 'approved') blockers.push('Identity not verified')
-      if (!owner?.watchlist_cleared) blockers.push('Sanctions screening not cleared')
+      const screeningCleared =
+        Boolean(owner?.watchlist_cleared) ||
+        Boolean(owner?.id && healedCleared.has(owner.id))
+      if (!screeningCleared) blockers.push('Sanctions screening not cleared')
       if (!method) blockers.push('No payout method saved')
 
       const payoutReady = blockers.length === 0
