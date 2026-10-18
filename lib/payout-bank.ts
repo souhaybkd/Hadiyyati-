@@ -5,28 +5,31 @@ import type {
   LocalBankTransferDetails,
 } from '@/lib/types/database'
 
+export type PayoutFormFieldKind = 'text' | 'country' | 'currency'
+
 export type PayoutFormField = {
   name: string
   label: string
   placeholder?: string
+  kind?: PayoutFormFieldKind
 }
 
 export const BANK_INTERNATIONAL_FIELDS: PayoutFormField[] = [
   { name: 'iban', label: 'IBAN', placeholder: 'SA03 8000 0000 6080 1016 7519' },
   { name: 'accountName', label: 'Account holder name', placeholder: 'John Doe' },
-  { name: 'currency', label: 'Currency', placeholder: 'USD' },
+  { name: 'currency', label: 'Currency', kind: 'currency' },
   { name: 'address', label: 'Address', placeholder: 'Street and number' },
   { name: 'city', label: 'City', placeholder: 'City' },
   { name: 'postalCode', label: 'Postal code / ZIP', placeholder: '10001' },
-  { name: 'country', label: 'Country', placeholder: 'United States' },
+  { name: 'country', label: 'Country', kind: 'country' },
 ]
 
 export const BANK_LOCAL_BANK_FIELDS: PayoutFormField[] = [
-  { name: 'currency', label: 'Currency', placeholder: 'USD' },
+  { name: 'currency', label: 'Currency', kind: 'currency' },
   { name: 'accountNumber', label: 'Account number', placeholder: '1234567890' },
   { name: 'accountName', label: 'Account holder name', placeholder: 'John Doe' },
   { name: 'bankName', label: 'Bank name', placeholder: 'Bank name' },
-  { name: 'bankCountry', label: 'Country', placeholder: 'Lebanon' },
+  { name: 'bankCountry', label: 'Country', kind: 'country' },
   { name: 'bankAddress', label: 'Bank address', placeholder: 'Street and number' },
   { name: 'bankCity', label: 'Bank city', placeholder: 'City' },
   { name: 'bankPostalCode', label: 'Bank postal code / ZIP', placeholder: '10001' },
@@ -37,7 +40,7 @@ export const BANK_LOCAL_PERSONAL_FIELDS: PayoutFormField[] = [
   { name: 'personalAddress', label: 'Address', placeholder: 'Street and number' },
   { name: 'personalCity', label: 'City', placeholder: 'City' },
   { name: 'personalPostalCode', label: 'Postal code / ZIP', placeholder: '10001' },
-  { name: 'personalCountry', label: 'Country', placeholder: 'Lebanon' },
+  { name: 'personalCountry', label: 'Country', kind: 'country' },
 ]
 
 function trimField(formData: FormData, key: string): string {

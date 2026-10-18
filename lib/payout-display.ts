@@ -1,5 +1,6 @@
 import type { PayoutDetails } from '@/lib/types/database'
 import { bankTransferTypeLabel, inferBankTransferType } from '@/lib/payout-bank'
+import { formatPayoutCountry, formatPayoutCurrency } from '@/lib/payout-select-options'
 
 export type PayoutMethodId = 'bank' | 'western_union' | 'taptap' | 'whish'
 
@@ -66,11 +67,11 @@ export function payoutDetailRows(
       if (bankType === 'local') {
         return [
           typeRow,
-          { label: 'Currency', value: d.currency },
+          { label: 'Currency', value: formatPayoutCurrency(d.currency) },
           { label: 'Account number', value: d.accountNumber },
           { label: 'Account holder name', value: d.accountName },
           { label: 'Bank name', value: d.bankName },
-          { label: 'Bank country', value: d.bankCountry },
+          { label: 'Bank country', value: formatPayoutCountry(d.bankCountry) },
           { label: 'Bank address', value: d.bankAddress },
           { label: 'Bank city', value: d.bankCity },
           { label: 'Bank postal code / ZIP', value: d.bankPostalCode },
@@ -78,24 +79,24 @@ export function payoutDetailRows(
           { label: 'Personal address', value: d.personalAddress },
           { label: 'Personal city', value: d.personalCity },
           { label: 'Personal postal code / ZIP', value: d.personalPostalCode },
-          { label: 'Personal country', value: d.personalCountry },
+          { label: 'Personal country', value: formatPayoutCountry(d.personalCountry) },
         ].filter((row) => Boolean(row.value))
       }
       return [
         typeRow,
         { label: 'IBAN', value: d.iban },
         { label: 'Account holder name', value: d.accountName },
-        { label: 'Currency', value: d.currency },
+        { label: 'Currency', value: formatPayoutCurrency(d.currency) },
         { label: 'Address', value: d.address },
         { label: 'City', value: d.city },
         { label: 'Postal code / ZIP', value: d.postalCode },
-        { label: 'Country', value: d.country },
+        { label: 'Country', value: formatPayoutCountry(d.country) },
       ].filter((row) => Boolean(row.value))
     }
     case 'western_union':
       return [
         { label: 'Full name', value: d.fullName },
-        { label: 'Country', value: d.country },
+        { label: 'Country', value: formatPayoutCountry(d.country) },
         { label: 'Phone number', value: d.phoneNumber },
       ].filter((row) => Boolean(row.value))
     case 'taptap':

@@ -5,7 +5,23 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import {
+    getPayoutCountryOptions,
+    getPayoutCurrencyOptions,
+    isPayoutCountryField,
+    isPayoutCurrencyField,
+    normalizeCountryValue,
+    normalizeCurrencyValue,
+    optionsWithLegacyValue,
+} from "@/lib/payout-select-options";
 import { Loader2, Trash2, ShieldCheck, ShieldAlert } from "lucide-react";
 import { getUserPayoutSettings, savePayoutSettings, deletePayoutSettings } from "@/lib/actions/payout-settings";
 import { getMyKycStatus, refreshMyWatchlistScreening, startVeriffSession } from "@/lib/actions/veriff";
@@ -25,10 +41,17 @@ import type { BankTransferType } from "@/lib/types/database";
 
 const PayoutMethods: { id: string; labelKey: string; fields: PayoutFormField[] }[] = [
     { id: "bank", labelKey: "dash.payoutBank", fields: [] },
-    { id: "western_union", labelKey: "dash.payoutWU", fields: [{ name: "fullName", label: "Full Name", placeholder: "John Doe" }, { name: "country", label: "Country", placeholder: "United States" }, { name: "phoneNumber", label: "Phone Number", placeholder: "+1 234 567 890" }] },
+    { id: "western_union", labelKey: "dash.payoutWU", fields: [{ name: "fullName", label: "Full Name", placeholder: "John Doe" }, { name: "country", label: "Country", kind: "country" }, { name: "phoneNumber", label: "Phone Number", placeholder: "+1 234 567 890" }] },
     { id: "taptap", labelKey: "dash.payoutTap", fields: [{ name: "mobileMoneyNumber", label: "Mobile Money Number", placeholder: "251912345678" }] },
     { id: "whish", labelKey: "dash.payoutWhish", fields: [{ name: "mobileMoneyNumber", label: "Mobile Money Number", placeholder: "251912345678" }] },
 ]
+
+function resolveFieldKind(field: PayoutFormField): "text" | "country" | "currency" {
+    if (field.kind) return field.kind
+    if (isPayoutCountryField(field.name)) return "country"
+    if (isPayoutCurrencyField(field.name)) return "currency"
+    return "text"
+}
 
 function PayoutFieldInputs({
     fields,
@@ -41,23 +64,92 @@ function PayoutFieldInputs({
     canSavePayouts: boolean
     onChange: (fieldName: string, value: string) => void
 }) {
+    const countryOptions = useMemo(() => getPayoutCountryOptions(), [])
+    const currencyOptions = useMemo(() => getPayoutCurrencyOptions(), [])
+
     return (
         <div className="grid gap-4">
-            {fields.map((field) => (
-                <div key={field.name} className="space-y-2">
-                    <Label htmlFor={field.name}>{field.label} *</Label>
-                    <Input
-                        id={field.name}
-                        name={field.name}
-                        placeholder={field.placeholder}
-                        value={formData[field.name] || ""}
-                        onChange={(e) => onChange(field.name, e.target.value)}
-                        required={canSavePayouts}
-                    />
-                </div>
-            ))}
+            {fields.map((field) => {
+                const kind = resolveFieldKind(field)
+                const value = formData[field.name] || ""
+
+                if (kind === "country") {
+                    const options = optionsWithLegacyValue(countryOptions, value)
+                    return (
+                        <div key={field.name} className="space-y-2">
+                            <Label htmlFor={field.name}>{field.label} *</Label>
+                            <Select
+                                value={value || undefined}
+                                onValueChange={(next) => onChange(field.name, next)}
+                                disabled={!canSavePayouts}
+                                required={canSavePayouts}
+                            >
+                                <SelectTrigger id={field.name}>
+                                    <SelectValue placeholder="Select country" />
+                                </SelectTrigger>
+                                <SelectContent className="max-h-72">
+                                    {options.map((option) => (
+                                        <SelectItem key={`${field.name}-${option.value}`} value={option.value}>
+                                            {option.label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    )
+                }
+
+                if (kind === "currency") {
+                    const options = optionsWithLegacyValue(currencyOptions, value)
+                    return (
+                        <div key={field.name} className="space-y-2">
+                            <Label htmlFor={field.name}>{field.label} *</Label>
+                            <Select
+                                value={value || undefined}
+                                onValueChange={(next) => onChange(field.name, next)}
+                                disabled={!canSavePayouts}
+                                required={canSavePayouts}
+                            >
+                                <SelectTrigger id={field.name}>
+                                    <SelectValue placeholder="Select currency" />
+                                </SelectTrigger>
+                                <SelectContent className="max-h-72">
+                                    {options.map((option) => (
+                                        <SelectItem key={`${field.name}-${option.value}`} value={option.value}>
+                                            {option.label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    )
+                }
+
+                return (
+                    <div key={field.name} className="space-y-2">
+                        <Label htmlFor={field.name}>{field.label} *</Label>
+                        <Input
+                            id={field.name}
+                            name={field.name}
+                            placeholder={field.placeholder}
+                            value={value}
+                            onChange={(e) => onChange(field.name, e.target.value)}
+                            required={canSavePayouts}
+                        />
+                    </div>
+                )
+            })}
         </div>
     )
+}
+
+function normalizeLoadedPayoutDetails(details: Record<string, string>): Record<string, string> {
+    const out = { ...details }
+    for (const key of ["country", "bankCountry", "personalCountry"]) {
+        if (out[key]) out[key] = normalizeCountryValue(out[key])
+    }
+    if (out.currency) out.currency = normalizeCurrencyValue(out.currency)
+    return out
 }
 
 export function PayoutSettings() {
@@ -103,12 +195,15 @@ export function PayoutSettings() {
             if (settings) {
                 setExistingSettings(settings);
                 setSelectedMethod(settings.payout_method);
-                const details = settings.payout_details as unknown as Record<string, string>;
-                setFormData(details);
+                const details = normalizeLoadedPayoutDetails(
+                    settings.payout_details as unknown as Record<string, string>
+                );
                 if (settings.payout_method === "bank") {
                     const inferred = inferBankTransferType(details);
                     setBankTransferType(inferred);
                     setFormData({ ...details, bankTransferType: inferred });
+                } else {
+                    setFormData(details);
                 }
             }
 
