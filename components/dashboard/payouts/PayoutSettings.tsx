@@ -13,18 +13,58 @@ import { PayoutSettings as PayoutSettingsType, KycStatus } from "@/lib/types/dat
 import { CheckCircle } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useLanguage } from "@/lib/contexts/LanguageContext";
+import {
+    BANK_INTERNATIONAL_FIELDS,
+    BANK_LOCAL_BANK_FIELDS,
+    BANK_LOCAL_PERSONAL_FIELDS,
+    bankTransferTypeLabel,
+    inferBankTransferType,
+    type PayoutFormField,
+} from "@/lib/payout-bank";
+import type { BankTransferType } from "@/lib/types/database";
 
-const PayoutMethods = [
-    { id: "bank", labelKey: "dash.payoutBank", fields: [{ name: "iban", label: "IBAN", placeholder: "SA03 8000 0000 6080 1016 7519" }, { name: "accountName", label: "Account Holder Name", placeholder: "John Doe" }] },
+const PayoutMethods: { id: string; labelKey: string; fields: PayoutFormField[] }[] = [
+    { id: "bank", labelKey: "dash.payoutBank", fields: [] },
     { id: "western_union", labelKey: "dash.payoutWU", fields: [{ name: "fullName", label: "Full Name", placeholder: "John Doe" }, { name: "country", label: "Country", placeholder: "United States" }, { name: "phoneNumber", label: "Phone Number", placeholder: "+1 234 567 890" }] },
     { id: "taptap", labelKey: "dash.payoutTap", fields: [{ name: "mobileMoneyNumber", label: "Mobile Money Number", placeholder: "251912345678" }] },
     { id: "whish", labelKey: "dash.payoutWhish", fields: [{ name: "mobileMoneyNumber", label: "Mobile Money Number", placeholder: "251912345678" }] },
 ]
 
+function PayoutFieldInputs({
+    fields,
+    formData,
+    canSavePayouts,
+    onChange,
+}: {
+    fields: PayoutFormField[]
+    formData: Record<string, string>
+    canSavePayouts: boolean
+    onChange: (fieldName: string, value: string) => void
+}) {
+    return (
+        <div className="grid gap-4">
+            {fields.map((field) => (
+                <div key={field.name} className="space-y-2">
+                    <Label htmlFor={field.name}>{field.label} *</Label>
+                    <Input
+                        id={field.name}
+                        name={field.name}
+                        placeholder={field.placeholder}
+                        value={formData[field.name] || ""}
+                        onChange={(e) => onChange(field.name, e.target.value)}
+                        required={canSavePayouts}
+                    />
+                </div>
+            ))}
+        </div>
+    )
+}
+
 export function PayoutSettings() {
     const { t } = useLanguage();
     const searchParams = useSearchParams();
     const [selectedMethod, setSelectedMethod] = useState("bank");
+    const [bankTransferType, setBankTransferType] = useState<BankTransferType>("international");
     const [formData, setFormData] = useState<Record<string, string>>({});
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -63,7 +103,13 @@ export function PayoutSettings() {
             if (settings) {
                 setExistingSettings(settings);
                 setSelectedMethod(settings.payout_method);
-                setFormData(settings.payout_details as unknown as Record<string, string>);
+                const details = settings.payout_details as unknown as Record<string, string>;
+                setFormData(details);
+                if (settings.payout_method === "bank") {
+                    const inferred = inferBankTransferType(details);
+                    setBankTransferType(inferred);
+                    setFormData({ ...details, bankTransferType: inferred });
+                }
             }
 
             setKycStatus(kyc.kyc_status);
@@ -147,6 +193,12 @@ export function PayoutSettings() {
         if (error) setError(null);
     };
 
+    const handleBankTransferTypeChange = (type: BankTransferType) => {
+        setBankTransferType(type);
+        setFormData((prev) => ({ ...prev, bankTransferType: type }));
+        if (error) setError(null);
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!isApproved) {
@@ -161,8 +213,12 @@ export function PayoutSettings() {
         try {
             const formDataObj = new FormData();
             formDataObj.append('payout_method', selectedMethod);
-            
+            if (selectedMethod === "bank") {
+                formDataObj.append("bankTransferType", bankTransferType);
+            }
+
             Object.entries(formData).forEach(([key, value]) => {
+                if (key === "bankTransferType") return;
                 formDataObj.append(key, value);
             });
 
@@ -191,6 +247,7 @@ export function PayoutSettings() {
             await deletePayoutSettings();
             setExistingSettings(null);
             setFormData({});
+            setBankTransferType("international");
             setSelectedMethod("bank");
             flashSuccess('Payout settings deleted successfully!');
         } catch (error) {
@@ -331,6 +388,15 @@ export function PayoutSettings() {
               <div>
                 <p className="text-sm font-medium text-green-800">
                   Current payout method: <span className="capitalize">{existingSettings.payout_method.replace('_', ' ')}</span>
+                  {existingSettings.payout_method === "bank" && (
+                    <span className="block text-xs font-normal mt-0.5">
+                      {bankTransferTypeLabel(
+                        inferBankTransferType(
+                          existingSettings.payout_details as unknown as Record<string, unknown>
+                        )
+                      )}
+                    </span>
+                  )}
                 </p>
                 <p className="text-xs text-green-600 mt-1">
                   Last updated: {new Date(existingSettings.updated_at).toLocaleDateString()}
@@ -354,7 +420,16 @@ export function PayoutSettings() {
           <fieldset disabled={!canSavePayouts} className={!canSavePayouts ? 'opacity-60' : undefined}>
             <div>
                 <Label className="text-base font-semibold">Select Payout Method</Label>
-                <RadioGroup value={selectedMethod} onValueChange={setSelectedMethod} className="mt-4 grid md:grid-cols-2 gap-4">
+                <RadioGroup
+                    value={selectedMethod}
+                    onValueChange={(method) => {
+                        setSelectedMethod(method);
+                        if (method === "bank") {
+                            setBankTransferType((prev) => prev || "international");
+                        }
+                    }}
+                    className="mt-4 grid md:grid-cols-2 gap-4"
+                >
                     {PayoutMethods.map(method => (
                         <Label key={method.id} htmlFor={method.id} className="flex items-center space-x-2 border rounded-md p-4 has-[input:checked]:border-primary cursor-pointer">
                             <RadioGroupItem value={method.id} id={method.id} />
@@ -365,25 +440,77 @@ export function PayoutSettings() {
             </div>
 
             {currentMethod && (
-                <div className="mt-8">
-                    {currentMethod && (
-                    <h3 className="text-lg font-semibold mb-4">{t(currentMethod.labelKey)}</h3>
-                    )}
-                    <div className="grid gap-4">
-                        {currentMethod.fields.map(field => (
-                            <div key={field.name} className="space-y-2">
-                                <Label htmlFor={field.name}>{field.label} *</Label>
-                                <Input 
-                                    id={field.name} 
-                                    name={field.name}
-                                    placeholder={field.placeholder}
-                                    value={formData[field.name] || ''}
-                                    onChange={(e) => handleInputChange(field.name, e.target.value)}
-                                    required={canSavePayouts}
-                                />
+                <div className="mt-8 space-y-6">
+                    {selectedMethod === "bank" ? (
+                        <>
+                            <div>
+                                <Label className="text-base font-semibold">Bank transfer type</Label>
+                                <RadioGroup
+                                    value={bankTransferType}
+                                    onValueChange={(value) => handleBankTransferTypeChange(value as BankTransferType)}
+                                    className="mt-4 grid sm:grid-cols-2 gap-4"
+                                >
+                                    <Label
+                                        htmlFor="bank-international"
+                                        className="flex items-center space-x-2 border rounded-md p-4 has-[input:checked]:border-primary cursor-pointer"
+                                    >
+                                        <RadioGroupItem value="international" id="bank-international" />
+                                        <span>International bank transfer</span>
+                                    </Label>
+                                    <Label
+                                        htmlFor="bank-local"
+                                        className="flex items-center space-x-2 border rounded-md p-4 has-[input:checked]:border-primary cursor-pointer"
+                                    >
+                                        <RadioGroupItem value="local" id="bank-local" />
+                                        <span>Local bank transfer</span>
+                                    </Label>
+                                </RadioGroup>
                             </div>
-                        ))}
-                    </div>
+
+                            {bankTransferType === "international" ? (
+                                <div>
+                                    <h3 className="text-lg font-semibold mb-4">International bank transfer</h3>
+                                    <PayoutFieldInputs
+                                        fields={BANK_INTERNATIONAL_FIELDS}
+                                        formData={formData}
+                                        canSavePayouts={canSavePayouts}
+                                        onChange={handleInputChange}
+                                    />
+                                </div>
+                            ) : (
+                                <>
+                                    <div>
+                                        <h3 className="text-lg font-semibold mb-4">Local bank transfer</h3>
+                                        <PayoutFieldInputs
+                                            fields={BANK_LOCAL_BANK_FIELDS}
+                                            formData={formData}
+                                            canSavePayouts={canSavePayouts}
+                                            onChange={handleInputChange}
+                                        />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-lg font-semibold mb-4">Personal information</h3>
+                                        <PayoutFieldInputs
+                                            fields={BANK_LOCAL_PERSONAL_FIELDS}
+                                            formData={formData}
+                                            canSavePayouts={canSavePayouts}
+                                            onChange={handleInputChange}
+                                        />
+                                    </div>
+                                </>
+                            )}
+                        </>
+                    ) : (
+                        <>
+                            <h3 className="text-lg font-semibold mb-4">{t(currentMethod.labelKey)}</h3>
+                            <PayoutFieldInputs
+                                fields={currentMethod.fields}
+                                formData={formData}
+                                canSavePayouts={canSavePayouts}
+                                onChange={handleInputChange}
+                            />
+                        </>
+                    )}
                 </div>
             )}
           </fieldset>

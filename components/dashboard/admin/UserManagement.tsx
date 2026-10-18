@@ -24,7 +24,14 @@ import {
   updateUserRole,
   type AdminUsersKycFilter,
 } from '@/lib/actions/admin'
-import { payoutMethodLabel, payoutDetailsSummary } from '@/lib/payout-display'
+import { payoutMethodLabel, payoutDetailRows } from '@/lib/payout-display'
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet'
 import type { PayoutDetails } from '@/lib/types/database'
 import { AdminListPagination } from '@/components/dashboard/admin/AdminListPagination'
 import {
@@ -90,6 +97,7 @@ export function UserManagement() {
   const [totalPages, setTotalPages] = useState(1)
   const [error, setError] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
+  const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null)
 
   useEffect(() => {
     const status = searchParams?.get('status')
@@ -371,16 +379,16 @@ export function UserManagement() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {users.map((user) => {
-                    const payoutSummary = payoutDetailsSummary(
-                      user.payout_method,
-                      user.payout_details
-                    )
-                    return (
-                    <TableRow key={user.id}>
+                  {users.map((user) => (
+                    <TableRow
+                      key={user.id}
+                      className="cursor-pointer hover:bg-design-gray-50/80"
+                      onClick={() => setSelectedUser(user)}
+                    >
                       <TableCell>
                         <div className="font-medium">{user.full_name || 'Unnamed user'}</div>
                         <div className="text-sm text-design-text-muted">@{user.username || 'unknown'}</div>
+                        <div className="text-xs text-design-primary mt-0.5">View details</div>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
@@ -395,11 +403,6 @@ export function UserManagement() {
                         <div className="text-sm font-medium text-design-text-heading">
                           {payoutMethodLabel(user.payout_method)}
                         </div>
-                        {payoutSummary && (
-                          <div className="text-xs text-design-text-muted mt-0.5 max-w-[220px] truncate" title={payoutSummary}>
-                            {payoutSummary}
-                          </div>
-                        )}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2 text-sm text-design-text-muted">
@@ -407,7 +410,7 @@ export function UserManagement() {
                           {new Date(user.created_at).toLocaleDateString()}
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
                         <div className="flex flex-wrap items-center gap-2">
                           {user.status === 'active' ? (
                             <AlertDialog>
@@ -483,7 +486,7 @@ export function UserManagement() {
                         </div>
                       </TableCell>
                     </TableRow>
-                  )})}
+                  ))}
                 </TableBody>
               </Table>
               <AdminListPagination
@@ -500,6 +503,78 @@ export function UserManagement() {
           )}
         </CardContent>
       </Card>
+
+      <Sheet open={Boolean(selectedUser)} onOpenChange={(open) => !open && setSelectedUser(null)}>
+        <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto">
+          {selectedUser && (() => {
+            const payoutRows = payoutDetailRows(
+              selectedUser.payout_method,
+              selectedUser.payout_details
+            )
+            return (
+            <>
+              <SheetHeader>
+                <SheetTitle>{selectedUser.full_name || 'Unnamed user'}</SheetTitle>
+                <SheetDescription>@{selectedUser.username || 'unknown'}</SheetDescription>
+              </SheetHeader>
+
+              <div className="mt-6 space-y-6">
+                <section className="space-y-3">
+                  <h3 className="text-sm font-semibold text-design-text-heading">Account</h3>
+                  <dl className="grid gap-2 text-sm">
+                    <div className="flex flex-col gap-0.5 sm:flex-row sm:gap-4">
+                      <dt className="text-design-text-muted shrink-0 sm:w-28">Email</dt>
+                      <dd className="text-design-text-heading break-all">{selectedUser.email}</dd>
+                    </div>
+                    <div className="flex flex-col gap-0.5 sm:flex-row sm:gap-4">
+                      <dt className="text-design-text-muted shrink-0 sm:w-28">Role</dt>
+                      <dd>{getRoleBadge(selectedUser.role)}</dd>
+                    </div>
+                    <div className="flex flex-col gap-0.5 sm:flex-row sm:gap-4">
+                      <dt className="text-design-text-muted shrink-0 sm:w-28">Status</dt>
+                      <dd>{getStatusBadge(selectedUser.status)}</dd>
+                    </div>
+                    <div className="flex flex-col gap-0.5 sm:flex-row sm:gap-4">
+                      <dt className="text-design-text-muted shrink-0 sm:w-28">KYC</dt>
+                      <dd>{getKycBadge(selectedUser.kyc_status)}</dd>
+                    </div>
+                    <div className="flex flex-col gap-0.5 sm:flex-row sm:gap-4">
+                      <dt className="text-design-text-muted shrink-0 sm:w-28">Joined</dt>
+                      <dd className="text-design-text-heading">
+                        {new Date(selectedUser.created_at).toLocaleString()}
+                      </dd>
+                    </div>
+                  </dl>
+                </section>
+
+                <section className="space-y-3 border-t border-design-gray-100 pt-6">
+                  <h3 className="text-sm font-semibold text-design-text-heading">Payout method</h3>
+                  <p className="text-sm font-medium text-design-text-heading">
+                    {payoutMethodLabel(selectedUser.payout_method)}
+                  </p>
+                  {payoutRows.length > 0 ? (
+                    <dl className="rounded-md border border-design-gray-100 bg-design-gray-50/50 p-4 grid gap-3 text-sm">
+                      {payoutRows.map((row) => (
+                          <div key={row.label} className="flex flex-col gap-0.5">
+                            <dt className="text-design-text-muted">{row.label}</dt>
+                            <dd className="text-design-text-heading font-medium break-all">{row.value}</dd>
+                          </div>
+                        ))}
+                    </dl>
+                  ) : (
+                    <p className="text-sm text-design-text-muted">
+                      {selectedUser.payout_method
+                        ? 'No payout details on file.'
+                        : 'This user has not selected a payout method yet.'}
+                    </p>
+                  )}
+                </section>
+              </div>
+            </>
+            )
+          })()}
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }

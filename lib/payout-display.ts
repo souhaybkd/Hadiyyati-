@@ -1,4 +1,5 @@
 import type { PayoutDetails } from '@/lib/types/database'
+import { bankTransferTypeLabel, inferBankTransferType } from '@/lib/payout-bank'
 
 export type PayoutMethodId = 'bank' | 'western_union' | 'taptap' | 'whish'
 
@@ -24,9 +25,19 @@ export function payoutDetailsSummary(
   const d = details as Record<string, string>
 
   switch (method) {
-    case 'bank':
-      if (d.iban) return d.accountName ? `${d.accountName} · ${d.iban}` : d.iban
-      return d.accountName || null
+    case 'bank': {
+      const bankType = inferBankTransferType(d)
+      const typeLabel = bankTransferTypeLabel(bankType)
+      if (bankType === 'local') {
+        const line = [d.accountName, d.accountNumber, d.bankName].filter(Boolean).join(' · ')
+        return line ? `${typeLabel}: ${line}` : typeLabel
+      }
+      if (d.iban) {
+        const line = d.accountName ? `${d.accountName} · ${d.iban}` : d.iban
+        return `${typeLabel}: ${line}`
+      }
+      return d.accountName ? `${typeLabel}: ${d.accountName}` : typeLabel
+    }
     case 'western_union':
       return [d.fullName, d.country, d.phoneNumber].filter(Boolean).join(' · ') || null
     case 'taptap':
@@ -34,5 +45,65 @@ export function payoutDetailsSummary(
       return d.mobileMoneyNumber || null
     default:
       return null
+  }
+}
+
+export type PayoutDetailRow = { label: string; value: string }
+
+/** Labeled fields for admin user detail views. */
+export function payoutDetailRows(
+  method: string | null | undefined,
+  details: PayoutDetails | Record<string, unknown> | null | undefined
+): PayoutDetailRow[] {
+  if (!method || !details || typeof details !== 'object') return []
+
+  const d = details as Record<string, string>
+
+  switch (method) {
+    case 'bank': {
+      const bankType = inferBankTransferType(d)
+      const typeRow = { label: 'Transfer type', value: bankTransferTypeLabel(bankType) }
+      if (bankType === 'local') {
+        return [
+          typeRow,
+          { label: 'Currency', value: d.currency },
+          { label: 'Account number', value: d.accountNumber },
+          { label: 'Account holder name', value: d.accountName },
+          { label: 'Bank name', value: d.bankName },
+          { label: 'Bank country', value: d.bankCountry },
+          { label: 'Bank address', value: d.bankAddress },
+          { label: 'Bank city', value: d.bankCity },
+          { label: 'Bank postal code / ZIP', value: d.bankPostalCode },
+          { label: 'SWIFT / BIC', value: d.swiftBic },
+          { label: 'Personal address', value: d.personalAddress },
+          { label: 'Personal city', value: d.personalCity },
+          { label: 'Personal postal code / ZIP', value: d.personalPostalCode },
+          { label: 'Personal country', value: d.personalCountry },
+        ].filter((row) => Boolean(row.value))
+      }
+      return [
+        typeRow,
+        { label: 'IBAN', value: d.iban },
+        { label: 'Account holder name', value: d.accountName },
+        { label: 'Currency', value: d.currency },
+        { label: 'Address', value: d.address },
+        { label: 'City', value: d.city },
+        { label: 'Postal code / ZIP', value: d.postalCode },
+        { label: 'Country', value: d.country },
+      ].filter((row) => Boolean(row.value))
+    }
+    case 'western_union':
+      return [
+        { label: 'Full name', value: d.fullName },
+        { label: 'Country', value: d.country },
+        { label: 'Phone number', value: d.phoneNumber },
+      ].filter((row) => Boolean(row.value))
+    case 'taptap':
+    case 'whish':
+      return [{ label: 'Mobile money number', value: d.mobileMoneyNumber }].filter((row) =>
+        Boolean(row.value)
+      )
+    default:
+      return []
   }
 }

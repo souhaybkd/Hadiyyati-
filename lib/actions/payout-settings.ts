@@ -5,13 +5,13 @@ import { createSupabaseServiceClient } from '@/lib/supabase-service'
 import { reconcileProfileWatchlistClearance } from '@/lib/veriff-watchlist-persist'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { 
-  PayoutSettings, 
+import {
+  PayoutSettings,
   PayoutDetails,
-  BankTransferDetails,
   WesternUnionDetails,
-  MobileMoneyDetails
+  MobileMoneyDetails,
 } from '@/lib/types/database'
+import { parseBankTransferDetails } from '@/lib/payout-bank'
 
 export async function getUserPayoutSettings(): Promise<PayoutSettings | null> {
   const supabase = await createSupabaseServerClient()
@@ -93,17 +93,7 @@ export async function savePayoutSettings(formData: FormData) {
 
     switch (payoutMethod) {
       case 'bank':
-        const iban = formData.get('iban') as string
-        const accountName = formData.get('accountName') as string
-        
-        if (!iban || !accountName) {
-          throw new Error('IBAN and Account Name are required for bank transfer')
-        }
-        
-        payoutDetails = {
-          iban: iban.trim(),
-          accountName: accountName.trim()
-        } as BankTransferDetails
+        payoutDetails = parseBankTransferDetails(formData)
         break
 
       case 'western_union':

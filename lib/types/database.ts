@@ -202,10 +202,46 @@ export interface PayoutSettings {
 }
 
 // Payout method specific details
-export interface BankTransferDetails {
+export type BankTransferType = 'international' | 'local'
+
+export interface InternationalBankTransferDetails {
+  bankTransferType: 'international'
+  iban: string
+  accountName: string
+  currency: string
+  address: string
+  city: string
+  postalCode: string
+  country: string
+}
+
+export interface LocalBankTransferDetails {
+  bankTransferType: 'local'
+  currency: string
+  accountNumber: string
+  accountName: string
+  bankName: string
+  bankCountry: string
+  bankAddress: string
+  bankCity: string
+  bankPostalCode: string
+  swiftBic: string
+  personalAddress: string
+  personalCity: string
+  personalPostalCode: string
+  personalCountry: string
+}
+
+/** @deprecated Legacy shape; treated as international when bankTransferType is missing */
+export interface LegacyBankTransferDetails {
   iban: string
   accountName: string
 }
+
+export type BankTransferDetails =
+  | InternationalBankTransferDetails
+  | LocalBankTransferDetails
+  | LegacyBankTransferDetails
 
 export interface WesternUnionDetails {
   fullName: string
