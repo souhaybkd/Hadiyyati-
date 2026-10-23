@@ -37,7 +37,6 @@ import Link from 'next/link'
 
 interface CheckoutForm {
   customMessage: string
-  isGift: boolean
   guestEmail: string
   guestName: string
 }
@@ -54,7 +53,6 @@ function CheckoutContent() {
   const [phoneError, setPhoneError] = useState<string | null>(null)
   const [form, setForm] = useState<CheckoutForm>({
     customMessage: '',
-    isGift: false,
     guestEmail: '',
     guestName: ''
   })
@@ -166,20 +164,19 @@ function CheckoutContent() {
   }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value, type } = e.target
-    
-    // Check for phone numbers if it's the customMessage field
+    const { name, value } = e.target
+
     if (name === 'customMessage') {
-      if (containsPhoneNumber(value)) {
+      if (value.trim() && containsPhoneNumber(value)) {
         setPhoneError(t('checkout.phoneNotAllowed'))
       } else {
         setPhoneError(null)
       }
     }
-    
-    setForm(prev => ({
+
+    setForm((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
+      [name]: value,
     }))
   }
 
@@ -189,12 +186,15 @@ function CheckoutContent() {
       return
     }
 
-    // Validate no phone numbers in gift message
-    if (form.isGift && form.customMessage && containsPhoneNumber(form.customMessage)) {
+    const trimmedMessage = form.customMessage.trim()
+
+    if (trimmedMessage && containsPhoneNumber(trimmedMessage)) {
       setError(t('checkout.phoneNotAllowed'))
       setPhoneError(t('checkout.phoneNotAllowed'))
       return
     }
+
+    const isGift = wishlistOwners.length > 0
 
     if (!paymentMethod) {
       setError(t('checkout.noMethod'))
@@ -226,8 +226,8 @@ function CheckoutContent() {
         },
         body: JSON.stringify({
           items: cartItems,
-          customMessage: form.customMessage,
-          isGift: form.isGift,
+          customMessage: trimmedMessage,
+          isGift,
           customerEmail: isLoggedIn === false ? form.guestEmail.trim() : undefined,
           customerName: isLoggedIn === false ? form.guestName.trim() : undefined,
           language,
@@ -403,72 +403,37 @@ function CheckoutContent() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="isGift"
-                    name="isGift"
-                    checked={form.isGift}
+                <div className="space-y-2">
+                  <Label htmlFor="customMessage">
+                    <MessageSquare className="h-4 w-4 inline me-2" />
+                    {t('checkout.yourMessage')}
+                  </Label>
+                  <Textarea
+                    id="customMessage"
+                    name="customMessage"
+                    dir="auto"
+                    value={form.customMessage}
                     onChange={handleInputChange}
-                    className="rounded border-gray-300"
+                    placeholder={t('checkout.messagePh')}
+                    rows={4}
+                    maxLength={500}
+                    className={phoneError ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}
                   />
-                  <Label htmlFor="isGift">{t('checkout.includeGiftMessage')}</Label>
+                  {phoneError && (
+                    <div className="flex items-center gap-2 p-2 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+                      <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                      <span>{phoneError}</span>
+                    </div>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    {t('checkout.chars', { n: form.customMessage.length })}
+                  </p>
                 </div>
-
-                {form.isGift && (
-                  <div className="space-y-4 p-4 bg-muted/50 rounded-lg">
-                    <div className="space-y-2">
-                      <Label htmlFor="customMessage">
-                        <MessageSquare className="h-4 w-4 inline me-2" />
-                        {t('checkout.yourMessage')}
-                      </Label>
-                      <Textarea
-                        id="customMessage"
-                        name="customMessage"
-                        dir="auto"
-                        value={form.customMessage}
-                        onChange={handleInputChange}
-                        placeholder={t('checkout.messagePh')}
-                        rows={4}
-                        maxLength={500}
-                        className={phoneError ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}
-                      />
-                      {phoneError && (
-                        <div className="flex items-center gap-2 p-2 bg-red-50 border border-red-200 rounded text-sm text-red-700">
-                          <AlertCircle className="h-4 w-4 flex-shrink-0" />
-                          <span>{phoneError}</span>
-                        </div>
-                      )}
-                      <p className="text-xs text-muted-foreground">
-                        {t('checkout.chars', { n: form.customMessage.length })}
-                      </p>
-                    </div>
-                    <div className="p-3 bg-blue-50 rounded-lg">
-                      <p className="text-sm text-blue-800">
-                        {t('checkout.messageNotify')}
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {!form.isGift && (
-                  <div className="space-y-2">
-                    <Label htmlFor="customMessage">
-                      <MessageSquare className="h-4 w-4 inline me-2" />
-                      {t('checkout.personalNote')}
-                    </Label>
-                    <Textarea
-                      id="customMessage"
-                      name="customMessage"
-                      dir="auto"
-                      value={form.customMessage}
-                      onChange={handleInputChange}
-                      placeholder={t('checkout.personalNotePh')}
-                      rows={3}
-                      maxLength={500}
-                    />
-                  </div>
-                )}
+                <div className="p-3 bg-blue-50 rounded-lg">
+                  <p className="text-sm text-blue-800">
+                    {t('checkout.messageNotify')}
+                  </p>
+                </div>
               </CardContent>
             </Card>
           </div>

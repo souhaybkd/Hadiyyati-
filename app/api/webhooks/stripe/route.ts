@@ -1,13 +1,7 @@
 import { headers } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
 import { getStripeClient, getStripeWebhookSecret } from '@/lib/stripe'
-import { createOrder, sendGiftNotification } from '@/lib/actions/checkout'
-import { createSupabaseServiceClient } from '@/lib/supabase-service'
-import { PLATFORM_FEE_STRIPE_PRODUCT_NAME } from '@/lib/checkout-pricing'
-import {
-  parseCheckoutItemLines,
-  uniqueWishlistIdsFromMetadata,
-} from '@/lib/checkout-items'
+import { fulfillStripeCheckoutSession } from '@/lib/stripe-fulfillment'
 
 export async function POST(request: NextRequest) {
   const body = await request.text()
@@ -60,106 +54,14 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function handleCheckoutSessionCompleted(session: any) {
+async function handleCheckoutSessionCompleted(session: { id: string }) {
   console.log('Processing checkout session completed:', session.id)
-
-  try {
-    // Get the full session with line items
-    const stripe = await getStripeClient()
-    const fullSession = await stripe.checkout.sessions.retrieve(session.id, {
-      expand: ['line_items.data.price.product']
-    })
-
-    const metadata = fullSession.metadata || {}
-    const itemLines = metadata.item_lines as string | undefined
-    const checkoutLines = itemLines?.trim()
-      ? parseCheckoutItemLines(itemLines)
-      : (metadata.item_ids ? metadata.item_ids.split(',').filter(Boolean) : []).map((id: string) => ({
-          id,
-          quantity: 1,
-        }))
-
-    const itemIds = uniqueWishlistIdsFromMetadata(itemLines, metadata.item_ids)
-
-    console.log('Extracted checkout lines from metadata:', checkoutLines)
-
-    const service = createSupabaseServiceClient()
-    const { data: wishlistRows } = await service
-      .from('wishlist_items')
-      .select('id, title, description, price, image_url')
-      .in('id', itemIds)
-
-    const wishlistById = new Map((wishlistRows || []).map((row) => [row.id, row]))
-
-    const orderItems = checkoutLines.map(({ id, quantity }) => {
-      const row = wishlistById.get(id)
-      return {
-        wishlist_item_id: id,
-        title: row?.title || 'Gift item',
-        description: row?.description || null,
-        price: Number(row?.price ?? 0),
-        quantity,
-        image_url: row?.image_url || null,
-      }
-    })
-
-    // Log if Stripe line items included the platform fee (not stored as order_items).
-    const feeLines = (fullSession.line_items?.data || []).filter((item) => {
-      const product = item.price?.product as { name?: string } | undefined
-      return product?.name === PLATFORM_FEE_STRIPE_PRODUCT_NAME
-    })
-    if (feeLines.length > 1) {
-      console.warn('Unexpected multiple platform fee line items on session', session.id)
-    }
-
-    console.log('Prepared order items with wishlist_item_ids:', orderItems)
-
-    // Create order in database.
-    // Pass the buyer id explicitly since a webhook request has no user session.
-    const order = await createOrder(
-      session.id,
-      (session.amount_total || 0) / 100, // Convert from cents
-      session.currency || 'usd',
-      session.customer_email || '',
-      metadata.custom_message || null,
-      metadata.is_gift === 'true',
-      metadata.wishlist_owner_ids || null,
-      orderItems,
-      metadata.user_id || null,
-      metadata.buyer_name || null
-    )
-
-    // Send gift notification to wishlist owners if it's a gift
-    if (metadata.is_gift === 'true' && metadata.wishlist_owner_ids) {
-      const wishlistOwnerIds = metadata.wishlist_owner_ids.split(',')
-      
-      for (const ownerId of wishlistOwnerIds) {
-        try {
-          await sendGiftNotification(
-            order.id,
-            ownerId.trim(),
-            metadata.user_id || null, // Sender id (null for guest checkout)
-            metadata.buyer_name || session.customer_email?.split('@')[0] || 'Gift Sender',
-            metadata.custom_message || null,
-            orderItems.map(item => ({
-              title: item.title,
-              price: item.price,
-              image_url: item.image_url
-            }))
-          )
-        } catch (error) {
-          console.error(`Failed to send notification to wishlist owner ${ownerId}:`, error)
-          // Continue with other notifications even if one fails
-        }
-      }
-    }
-
-    console.log('Order created successfully:', order.id)
-    console.log('Dashboard should now show updated data for users:', metadata.wishlist_owner_ids)
-  } catch (error) {
-    console.error('Error processing checkout session:', error)
-    throw error
+  const result = await fulfillStripeCheckoutSession(session.id)
+  if (!result.fulfilled) {
+    console.log('Checkout session not paid yet, skipping order:', session.id)
+    return
   }
+  console.log('Order recorded for Stripe session:', session.id, result.order.id)
 }
 
 async function handlePaymentIntentSucceeded(paymentIntent: any) {

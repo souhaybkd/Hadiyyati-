@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getStripeClient } from '@/lib/stripe'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { fulfillStripeCheckoutSession } from '@/lib/stripe-fulfillment'
 
 export async function GET(request: NextRequest) {
   try {
@@ -15,11 +16,20 @@ export async function GET(request: NextRequest) {
     const supabase = await createSupabaseServerClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    // Retrieve the checkout session from Stripe
-    const stripe = await getStripeClient()
-    const session = await stripe.checkout.sessions.retrieve(sessionId, {
-      expand: ['line_items', 'payment_intent']
-    })
+    // Paid sessions create the platform order here as well as via the webhook.
+    // Whish already does this on the success poll; Stripe previously waited only
+    // on the webhook, so a missed webhook left the charge in Stripe with no order.
+    let session
+    try {
+      const result = await fulfillStripeCheckoutSession(sessionId)
+      session = result.session
+    } catch (fulfillError) {
+      console.error('Stripe fulfillment error:', fulfillError)
+      const stripe = await getStripeClient()
+      session = await stripe.checkout.sessions.retrieve(sessionId, {
+        expand: ['line_items', 'payment_intent'],
+      })
+    }
 
     // If the session belongs to a registered buyer, only that buyer may view it.
     // Guest sessions (no user_id) are viewable via the Stripe session id itself.

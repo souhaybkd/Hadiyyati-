@@ -84,9 +84,13 @@ export async function createOrder(
     return existingOrder
   }
 
-  // The order owner is the wishlist owner for gifts. For a guest buying from a
-  // wishlist there is no buyer account, so fall back to the wishlist owner.
-  const ownerId = isGift ? wishlistOwnerIds : (userId ?? wishlistOwnerIds)
+  // owner_id is a single profile uuid. wishlist_owner_ids may be comma-separated.
+  const ownerIds = (wishlistOwnerIds || '')
+    .split(',')
+    .map((id) => id.trim())
+    .filter(Boolean)
+  const primaryOwnerId = ownerIds[0] ?? null
+  const ownerId = isGift ? primaryOwnerId : (userId ?? primaryOwnerId)
 
   // Create order
   const { data: order, error: orderError } = await supabase
@@ -135,23 +139,24 @@ export async function createOrder(
   // The wishlist owner can manually mark items as purchased in their dashboard
 
   // Send gift notification if it's a gift order
-  if (isGift && wishlistOwnerIds) {
-    try {
-      await sendGiftNotification(
-        order.id,
-        wishlistOwnerIds,
-        userId,
-        buyerName || customerEmail.split('@')[0] || 'A friend',
-        customMessage,
-        items.map(item => ({
-          title: item.title,
-          price: item.price,
-          image_url: item.image_url
-        }))
-      )
-    } catch (notificationError) {
-      console.error('Failed to send gift notification:', notificationError)
-      // Don't throw error as order was created successfully
+  if (isGift && ownerIds.length > 0) {
+    for (const ownerId of ownerIds) {
+      try {
+        await sendGiftNotification(
+          order.id,
+          ownerId,
+          userId,
+          buyerName || customerEmail.split('@')[0] || 'A friend',
+          customMessage,
+          items.map(item => ({
+            title: item.title,
+            price: item.price,
+            image_url: item.image_url
+          }))
+        )
+      } catch (notificationError) {
+        console.error(`Failed to send gift notification to ${ownerId}:`, notificationError)
+      }
     }
   }
 

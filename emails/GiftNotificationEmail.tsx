@@ -12,6 +12,8 @@ import {
   Section,
   Text,
 } from '@react-email/components'
+import { giftNotificationCopy } from '@/lib/email-gift-notification-copy'
+import { getEmailLogoUrl, getEmailSiteUrl } from '@/lib/email-brand'
 
 interface GiftNotificationEmailProps {
   recipientName: string
@@ -25,6 +27,8 @@ interface GiftNotificationEmailProps {
   giftMessage?: string
   totalAmount: number
   viewGiftUrl: string
+  logoUrl?: string
+  siteUrl?: string
 }
 
 export default function GiftNotificationEmail({
@@ -40,49 +44,51 @@ export default function GiftNotificationEmail({
   giftMessage,
   totalAmount = 29.99,
   viewGiftUrl = 'https://hadiyyati.com/dashboard?tab=history',
+  logoUrl = getEmailLogoUrl(),
+  siteUrl = getEmailSiteUrl(),
 }: GiftNotificationEmailProps) {
-  const previewText = `🎁 You've received a gift from ${senderName}!`
+  const copy = giftNotificationCopy
+  const amountFormatted = `$${totalAmount.toFixed(2)}`
+  const previewText = copy.preview(senderName)
 
   return (
-    <Html>
+    <Html lang="en">
       <Head />
       <Preview>{previewText}</Preview>
       <Body style={main}>
         <Container style={container}>
-          {/* Header */}
           <Section style={header}>
-            <Img
-              src="https://hadiyyati.com/logo.png"
-              width="50"
-              height="50"
-              alt="hadiyyati"
-              style={logo}
-            />
-            <Heading style={h1}>🎁 You've Got a Gift!</Heading>
+            <Link href={siteUrl}>
+              <Img
+                src={logoUrl}
+                width="160"
+                height="48"
+                alt="hadiyyati | هديتي"
+                style={logo}
+              />
+            </Link>
+            <Heading style={h1}>{copy.headingEn}</Heading>
+            <Heading style={h1Ar}>{copy.headingAr}</Heading>
           </Section>
 
-          {/* Main Content */}
           <Section style={content}>
-            <Text style={paragraph}>
-              Hi <strong>{recipientName}</strong>,
-            </Text>
-            
-            <Text style={paragraph}>
-              Great news! <strong>{senderName}</strong> has sent you a wonderful gift through hadiyyati! 
-              Your wishlist items have been purchased and are on their way to you.
-            </Text>
+            <Text style={paragraph}>{copy.greetingEn(recipientName)}</Text>
+            <Text style={paragraphRtl}>{copy.greetingAr(recipientName)}</Text>
 
-            {/* Gift Message */}
+            <Text style={paragraph}>{copy.bodyEn(senderName)}</Text>
+            <Text style={paragraphRtl}>{copy.bodyAr(senderName)}</Text>
+
             {giftMessage && (
               <Section style={messageSection}>
-                <Text style={messageLabel}>💌 Personal Message from {senderName}:</Text>
-                <Text style={messageText}>"{giftMessage}"</Text>
+                <Text style={messageLabel}>{copy.messageLabelEn(senderName)}</Text>
+                <Text style={messageLabelRtl}>{copy.messageLabelAr(senderName)}</Text>
+                <Text style={messageText} dir="auto">&ldquo;{giftMessage}&rdquo;</Text>
               </Section>
             )}
 
-            {/* Gift Items */}
             <Section style={itemsSection}>
-              <Heading style={h2}>Your Gift Items:</Heading>
+              <Heading style={h2}>{copy.itemsHeadingEn}</Heading>
+              <Heading style={h2Ar}>{copy.itemsHeadingAr}</Heading>
               {giftItems.map((item, index) => (
                 <Section key={index} style={itemCard}>
                   <div style={itemContent}>
@@ -105,49 +111,58 @@ export default function GiftNotificationEmail({
                   </div>
                 </Section>
               ))}
-              
+
               <Hr style={hr} />
-              <div style={totalSection}>
-                <Text style={totalText}>
-                  <strong>Total Gift Value: ${totalAmount.toFixed(2)}</strong>
-                </Text>
-              </div>
+              <Text style={totalText}>
+                <strong>{copy.totalEn(amountFormatted)}</strong>
+              </Text>
+              <Text style={totalTextRtl}>
+                <strong>{copy.totalAr(amountFormatted)}</strong>
+              </Text>
             </Section>
 
-            {/* Call to Action */}
             <Section style={buttonSection}>
               <Button style={button} href={viewGiftUrl}>
-                View Your Gift Details
+                {copy.ctaEn} · {copy.ctaAr}
               </Button>
             </Section>
 
-            <Text style={paragraph}>
-              You can view all your gift details, send a thank you note to {senderName}, 
-              and track your items in your hadiyyati dashboard.
-            </Text>
+            <Text style={paragraph}>{copy.afterCtaEn(senderName)}</Text>
+            <Text style={paragraphRtl}>{copy.afterCtaAr(senderName)}</Text>
 
-            <Text style={smallText}>
-              Thank you for using hadiyyati - making gift-giving simple and meaningful! 💝
-            </Text>
+            <Text style={smallText}>{copy.signoffEn}</Text>
+            <Text style={smallTextRtl}>{copy.signoffAr}</Text>
           </Section>
 
-          {/* Footer */}
           <Section style={footer}>
             <Hr style={hr} />
             <Text style={footerText}>
-              This email was sent by hadiyyati. If you have any questions, please{' '}
+              {copy.footerEn}{' '}
               <Link href="mailto:support@hadiyyati.com" style={link}>
-                contact our support team
+                support@hadiyyati.com
               </Link>
-              .
+            </Text>
+            <Text style={footerTextRtl}>
+              {copy.footerAr}{' '}
+              <Link href="mailto:support@hadiyyati.com" style={link}>
+                support@hadiyyati.com
+              </Link>
             </Text>
             <Text style={footerText}>
-              <Link href="https://hadiyyati.com" style={link}>
-                Visit hadiyyati
+              <Link href={siteUrl} style={link}>
+                {copy.visitEn}
               </Link>{' '}
               |{' '}
-              <Link href="https://hadiyyati.com/unsubscribe" style={link}>
-                Unsubscribe
+              <Link href={siteUrl} style={link}>
+                {copy.visitAr}
+              </Link>{' '}
+              |{' '}
+              <Link href={`${siteUrl}/unsubscribe`} style={link}>
+                {copy.unsubscribeEn}
+              </Link>{' '}
+              |{' '}
+              <Link href={`${siteUrl}/unsubscribe`} style={link}>
+                {copy.unsubscribeAr}
               </Link>
             </Text>
           </Section>
@@ -157,10 +172,10 @@ export default function GiftNotificationEmail({
   )
 }
 
-// Styles
 const main = {
   backgroundColor: '#f6f9fc',
-  fontFamily: '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Ubuntu,sans-serif',
+  fontFamily:
+    '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Tahoma,Arial,sans-serif',
 }
 
 const container = {
@@ -173,27 +188,42 @@ const container = {
 
 const header = {
   textAlign: 'center' as const,
-  padding: '20px 0',
+  padding: '24px 20px 12px',
 }
 
 const logo = {
-  margin: '0 auto',
+  margin: '0 auto 16px',
+  display: 'block',
+  objectFit: 'contain' as const,
 }
 
 const h1 = {
   color: '#333',
-  fontSize: '28px',
+  fontSize: '24px',
   fontWeight: 'bold',
-  margin: '20px 0',
+  margin: '8px 0 4px',
   padding: '0',
   textAlign: 'center' as const,
 }
 
+const h1Ar = {
+  ...h1,
+  fontSize: '22px',
+  direction: 'rtl' as const,
+}
+
 const h2 = {
   color: '#333',
-  fontSize: '20px',
+  fontSize: '18px',
   fontWeight: 'bold',
-  margin: '20px 0 15px',
+  margin: '16px 0 8px',
+}
+
+const h2Ar = {
+  ...h2,
+  direction: 'rtl' as const,
+  textAlign: 'right' as const,
+  margin: '0 0 12px',
 }
 
 const content = {
@@ -205,12 +235,19 @@ const paragraph = {
   fontSize: '16px',
   lineHeight: '24px',
   textAlign: 'left' as const,
-  margin: '16px 0',
+  margin: '12px 0',
+}
+
+const paragraphRtl = {
+  ...paragraph,
+  direction: 'rtl' as const,
+  textAlign: 'right' as const,
 }
 
 const messageSection = {
   backgroundColor: '#f8f9fa',
   borderLeft: '4px solid #7c3aed',
+  borderRight: '4px solid #7c3aed',
   padding: '16px 20px',
   margin: '24px 0',
   borderRadius: '4px',
@@ -220,6 +257,13 @@ const messageLabel = {
   color: '#7c3aed',
   fontSize: '14px',
   fontWeight: 'bold',
+  margin: '0 0 4px',
+}
+
+const messageLabelRtl = {
+  ...messageLabel,
+  direction: 'rtl' as const,
+  textAlign: 'right' as const,
   margin: '0 0 8px',
 }
 
@@ -278,15 +322,16 @@ const itemPrice = {
   margin: '0',
 }
 
-const totalSection = {
-  textAlign: 'right' as const,
-  padding: '16px 0 0',
-}
-
 const totalText = {
   color: '#111827',
-  fontSize: '18px',
-  margin: '0',
+  fontSize: '16px',
+  margin: '8px 0 0',
+  textAlign: 'right' as const,
+}
+
+const totalTextRtl = {
+  ...totalText,
+  direction: 'rtl' as const,
 }
 
 const buttonSection = {
@@ -298,14 +343,15 @@ const button = {
   backgroundColor: '#7c3aed',
   borderRadius: '8px',
   color: '#fff',
-  fontSize: '16px',
+  fontSize: '15px',
   fontWeight: 'bold',
   textDecoration: 'none',
   textAlign: 'center' as const,
   display: 'inline-block',
   width: '100%',
-  maxWidth: '300px',
+  maxWidth: '320px',
   padding: '14px 20px',
+  lineHeight: '22px',
 }
 
 const hr = {
@@ -320,9 +366,14 @@ const footer = {
 const footerText = {
   color: '#8898aa',
   fontSize: '12px',
-  lineHeight: '16px',
+  lineHeight: '18px',
   margin: '8px 0',
   textAlign: 'center' as const,
+}
+
+const footerTextRtl = {
+  ...footerText,
+  direction: 'rtl' as const,
 }
 
 const link = {
@@ -334,6 +385,11 @@ const smallText = {
   color: '#8898aa',
   fontSize: '14px',
   lineHeight: '20px',
-  margin: '16px 0',
+  margin: '12px 0 4px',
   textAlign: 'center' as const,
+}
+
+const smallTextRtl = {
+  ...smallText,
+  direction: 'rtl' as const,
 }

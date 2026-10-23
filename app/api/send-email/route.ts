@@ -3,6 +3,7 @@ import { createSupabaseServiceClient } from '@/lib/supabase-service'
 import { sendEmail, getEmailData, isValidEmail, type EmailType } from '@/lib/resend'
 import { render } from '@react-email/render'
 import GiftNotificationEmail from '@/emails/GiftNotificationEmail'
+import { getEmailLogoUrl, getEmailSiteUrl } from '@/lib/email-brand'
 
 export async function POST(request: NextRequest) {
   try {
@@ -83,6 +84,8 @@ export async function POST(request: NextRequest) {
           giftMessage,
           totalAmount,
           viewGiftUrl: emailData.viewUrl,
+          logoUrl: getEmailLogoUrl(),
+          siteUrl: getEmailSiteUrl(),
         })
         break
 

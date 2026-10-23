@@ -1,4 +1,5 @@
 import { Resend } from 'resend'
+import { giftNotificationCopy } from '@/lib/email-gift-notification-copy'
 
 // Initialize Resend only when needed to avoid build-time errors
 let resend: Resend | null = null
@@ -142,7 +143,7 @@ export function getEmailData(type: EmailType, data: any) {
   switch (type) {
     case 'gift_notification':
       return {
-        subject: `🎁 You've received a gift from ${data.senderName}!`,
+        subject: giftNotificationCopy.subject(data.senderName || 'someone'),
         viewUrl: `${baseUrl}/dashboard?tab=history`,
       }
     case 'gift_received':
