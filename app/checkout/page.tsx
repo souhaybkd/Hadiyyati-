@@ -30,7 +30,9 @@ import {
   Minus,
   AlertCircle,
   Wallet,
-  CheckCircle
+  CheckCircle,
+  Zap,
+  Clock
 } from 'lucide-react'
 import { useLanguage } from '@/lib/contexts/LanguageContext'
 import Link from 'next/link'
@@ -535,6 +537,8 @@ function CheckoutContent() {
                           icon={<CreditCard className="h-5 w-5" />}
                           title={t('checkout.card')}
                           description={t('checkout.cardDesc')}
+                          note={t('checkout.cardNote')}
+                          noteIcon={<Clock className="h-3.5 w-3.5" />}
                         />
                       )}
                       {gateways.whish && (
@@ -544,6 +548,8 @@ function CheckoutContent() {
                           icon={<Wallet className="h-5 w-5" />}
                           title={t('checkout.whish')}
                           description={t('checkout.whishDesc')}
+                          note={t('checkout.whishNote')}
+                          noteIcon={<Zap className="h-3.5 w-3.5" />}
                         />
                       )}
                     </div>
@@ -656,12 +662,16 @@ function PaymentOption({
   icon,
   title,
   description,
+  note,
+  noteIcon,
 }: {
   selected: boolean
   onSelect: () => void
   icon: React.ReactNode
   title: string
   description: string
+  note?: string
+  noteIcon?: React.ReactNode
 }) {
   return (
     <button
@@ -677,6 +687,12 @@ function PaymentOption({
       <div className="flex-1 min-w-0">
         <p className="font-medium text-sm">{title}</p>
         <p className="text-xs text-muted-foreground">{description}</p>
+        {note && (
+          <p className={`mt-1 flex items-center gap-1 text-xs font-medium ${selected ? 'text-primary' : 'text-foreground/80'}`}>
+            {noteIcon}
+            <span>{note}</span>
+          </p>
+        )}
       </div>
       {selected && <CheckCircle className="h-5 w-5 text-primary flex-shrink-0" />}
     </button>

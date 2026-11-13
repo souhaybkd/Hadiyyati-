@@ -7,10 +7,24 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Gift, Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-react'
 import { useLanguage } from '@/lib/contexts/LanguageContext'
+import { useSearchParams } from 'next/navigation'
 import { createSupabaseClient } from '@/lib/supabase'
 
 export function AuthForm() {
-    const [mode, setMode] = useState<'login' | 'register' | 'forgot'>('login')
+    const searchParams = useSearchParams()
+    const modeParam = searchParams?.get('mode')
+    const [mode, setMode] = useState<'login' | 'register' | 'forgot'>(
+        modeParam === 'register' ? 'register' : 'login'
+    )
+
+    // Follow ?mode=login / ?mode=register when the URL changes (e.g. header links)
+    useEffect(() => {
+        if (modeParam === 'register' || modeParam === 'login') {
+            setMode(modeParam)
+            setError('')
+            setSuccess('')
+        }
+    }, [modeParam])
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [name, setName] = useState('')

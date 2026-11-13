@@ -13,6 +13,12 @@ export function Navbar() {
   const pathname = usePathname()
   const { t } = useLanguage()
   const [isMenuOpen, setIsMenuOpen] = React.useState(false)
+  const isAuthPage = pathname?.startsWith('/auth')
+
+  // Close the mobile menu whenever the route changes
+  React.useEffect(() => {
+    setIsMenuOpen(false)
+  }, [pathname])
 
   const navigation = [
     { key: 'nav.home', href: '/' },
@@ -31,7 +37,7 @@ export function Navbar() {
   return (
     <nav dir="ltr" className="bg-white sticky top-0 z-50 border-b border-gray-200">
       <div className="design-container">
-        <div className="flex items-center justify-between h-20">
+        <div className="relative flex items-center justify-between h-20">
           <Link href="/" className="flex items-center gap-2 group shrink-0">
             <Image
               src="/assets/img/LOGO.png"
@@ -43,7 +49,7 @@ export function Navbar() {
             />
           </Link>
 
-          <div className="hidden md:flex items-center gap-3">
+          <div className="hidden md:flex items-center gap-3 absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
             {navigation.map((item, index) => (
               <Link
                 key={item.href}
@@ -65,6 +71,12 @@ export function Navbar() {
               <Link href="/auth">{t('nav.getStarted')}</Link>
             </Button>
           </div>
+
+          {isAuthPage && (
+            <div className="md:hidden absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+              <LanguageToggle variant="muted" />
+            </div>
+          )}
 
           <button
             className="md:hidden p-2 rounded-design-button text-design-text-heading hover:bg-gray-100 transition-design"
@@ -96,10 +108,10 @@ export function Navbar() {
               <div className="pt-4 border-t border-gray-200 flex flex-col gap-2">
                 <LanguageToggle variant="muted" />
                 <Button asChild variant="outline" size="sm" className="w-full">
-                  <Link href="/auth">{t('nav.login')}</Link>
+                  <Link href="/auth?mode=login" onClick={() => setIsMenuOpen(false)}>{t('nav.login')}</Link>
                 </Button>
                 <Button asChild size="sm" className="w-full">
-                  <Link href="/auth">{t('nav.register')}</Link>
+                  <Link href="/auth?mode=register" onClick={() => setIsMenuOpen(false)}>{t('nav.register')}</Link>
                 </Button>
               </div>
             </div>

@@ -35,7 +35,6 @@ export function Hero() {
           
           <div className="text-xl mb-6 text-white max-w-3xl mx-auto leading-relaxed space-y-3">
             <p>{t('home.hero.subtitle')}</p>
-            {t('home.hero.subtitle2') ? <p>{t('home.hero.subtitle2')}</p> : null}
           </div>
 
           {/* <div className="w-full max-w-xs mx-auto mb-8">
