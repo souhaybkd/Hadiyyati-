@@ -3,7 +3,7 @@
 import { createHmac, timingSafeEqual } from 'crypto'
 import type { KycStatus, KycVerificationStatus } from '@/lib/types/database'
 
-const DEFAULT_BASE_URL = 'https://stationapi.veriff.com'
+const DEFAULT_BASE_URL = 'https://api-saas.veriff.com'
 
 export class VeriffConfigError extends Error {
   constructor(message: string) {

@@ -2,6 +2,7 @@ import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import type { NextRequest } from 'next/server'
+import { notifyAdminOfNewSignup } from '@/lib/admin-notifications'
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
@@ -38,6 +39,9 @@ export async function GET(request: NextRequest) {
       const { data: { user } } = await supabase.auth.getUser()
       
       if (user) {
+        // New Google sign-ups (and email confirmations) notify the admin once
+        await notifyAdminOfNewSignup(user.id)
+
         // Check if user has a profile
         const { data: profile } = await supabase
           .from('profiles')

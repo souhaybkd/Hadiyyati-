@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Gift, Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-react'
 import { useLanguage } from '@/lib/contexts/LanguageContext'
 import { useSearchParams } from 'next/navigation'
+import { notifyNewSignup } from '@/app/auth/actions'
 import { createSupabaseClient } from '@/lib/supabase'
 
 export function AuthForm() {
@@ -94,6 +95,15 @@ export function AuthForm() {
                 if (error) {
                     setError(error.message)
                     return
+                }
+
+                // Let the admin know about the new account (never blocks sign-up)
+                if (data.user?.id) {
+                    try {
+                        await notifyNewSignup(data.user.id)
+                    } catch {
+                        // ignore
+                    }
                 }
                 
                 // Check if email confirmation is required

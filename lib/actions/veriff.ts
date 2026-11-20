@@ -12,6 +12,7 @@ import {
   persistWatchlistScreening,
   reconcileProfileWatchlistClearance,
 } from '@/lib/veriff-watchlist-persist'
+import { notifyAdminOfKycStart } from '@/lib/admin-notifications'
 import type { WatchlistScreeningPayload } from '@/lib/veriff-watchlist'
 import type { KycStatus } from '@/lib/types/database'
 import { redirect } from 'next/navigation'
@@ -316,6 +317,13 @@ export async function startVeriffSession(): Promise<{ url?: string; error?: stri
       }
       return { error: 'Failed to update verification status' }
     }
+
+    await notifyAdminOfKycStart({
+      userId: user.id,
+      email,
+      fullName: profile?.full_name,
+      sessionId: session.verification.id,
+    })
 
     return { url: session.verification.url }
   } catch (error) {

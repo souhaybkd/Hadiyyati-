@@ -130,6 +130,55 @@ export async function sendContactEmail({
   }
 }
 
+const ADMIN_NOTIFY_TO =
+  process.env.ADMIN_NOTIFY_EMAIL || process.env.CONTACT_TO_EMAIL || 'info@hadiyyati.me'
+
+/** Plain internal notification to the admin inbox (signups, KYC starts, …). */
+export async function sendAdminNotificationEmail({
+  subject,
+  heading,
+  rows,
+  link,
+}: {
+  subject: string
+  heading: string
+  rows: Array<[string, string]>
+  link?: { label: string; href: string }
+}) {
+  const htmlRows = rows
+    .map(
+      ([label, value]) =>
+        `<tr><td style="padding:4px 12px 4px 0;color:#6b7280;white-space:nowrap;">${escapeHtml(label)}</td><td style="padding:4px 0;">${escapeHtml(value)}</td></tr>`
+    )
+    .join('')
+  const html = `
+    <div style="font-family: sans-serif; line-height: 1.6; color: #111827;">
+      <h2 style="margin: 0 0 16px;">${escapeHtml(heading)}</h2>
+      <table style="border-collapse: collapse; font-size: 14px;">${htmlRows}</table>
+      ${link ? `<p style="margin-top: 20px;"><a href="${escapeHtml(link.href)}" style="color:#B8941F;">${escapeHtml(link.label)}</a></p>` : ''}
+    </div>
+  `
+  const text = `${heading}\n\n${rows.map(([l, v]) => `${l}: ${v}`).join('\n')}${link ? `\n\n${link.label}: ${link.href}` : ''}`
+
+  try {
+    const result = await getResend().emails.send({
+      from: EMAIL_CONFIG.from,
+      to: ADMIN_NOTIFY_TO,
+      subject,
+      html,
+      text,
+    })
+    if (result.error) {
+      console.error('❌ Failed to send admin notification:', result.error)
+      return { success: false, error: result.error }
+    }
+    return { success: true, data: result }
+  } catch (error) {
+    console.error('❌ Failed to send admin notification:', error)
+    return { success: false, error }
+  }
+}
+
 // Utility function to validate email addresses
 export function isValidEmail(email: string): boolean {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/

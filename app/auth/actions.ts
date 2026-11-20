@@ -2,6 +2,15 @@
 
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { createSupabaseServiceClient } from '@/lib/supabase-service'
+import { notifyAdminOfNewSignup } from '@/lib/admin-notifications'
+
+// Called by the sign-up form right after Supabase creates the account.
+// The helper only emails for accounts created in the last hour and only once
+// per user, so calling it with an arbitrary id can't be used to spam.
+export async function notifyNewSignup(userId: string) {
+  if (typeof userId !== 'string' || !/^[0-9a-f-]{36}$/i.test(userId)) return
+  await notifyAdminOfNewSignup(userId)
+}
 
 export async function requestPasswordReset(email: string) {
   try {
